@@ -23,7 +23,7 @@ async function requireAdmin(request: any, reply: any): Promise<void> {
     return;
   }
 
-  const hasAdmin = user.userRoles.some((ur) => ur.role.name === 'admin');
+  const hasAdmin = user.userRoles.some((ur: any) => ur.role.name === 'admin');
   if (!hasAdmin) {
     reply.code(403).send({ error: 'Admin access required' });
     return;
@@ -209,7 +209,7 @@ export async function canonRoutes(fastify: FastifyInstance) {
         const folder = await prisma.folder.findUnique({ where: { id: folderId } });
         if (!folder || folder.kind !== 'canon') return reply.code(400).send({ error: 'Invalid folder for canon page' });
 
-        const page = await prisma.$transaction(async (tx) => {
+        const page = await prisma.$transaction(async (tx: any) => {
           const created = await tx.page.create({
             data: {
               title,
@@ -297,7 +297,7 @@ export async function canonRoutes(fastify: FastifyInstance) {
         const page = await prisma.page.findUnique({ where: { id }, include: { folder: true, revisions: true } });
         if (!page || page.folder.kind !== 'canon') return reply.code(404).send({ error: 'Page not found' });
 
-        const nextVersion = (page.revisions.reduce((max, r) => Math.max(max, r.version), 0) || 0) + 1;
+        const nextVersion = (page.revisions.reduce((max: number, r: any) => Math.max(max, r.version), 0) || 0) + 1;
 
         const rev = await prisma.pageRevision.create({
           data: {

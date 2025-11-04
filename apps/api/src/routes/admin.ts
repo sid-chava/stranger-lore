@@ -31,7 +31,7 @@ async function requireAdmin(
     return;
   }
 
-  const hasAdminRole = user.userRoles.some((ur) => ur.role.name === 'admin');
+  const hasAdminRole = user.userRoles.some((ur: any) => ur.role.name === 'admin');
   if (!hasAdminRole) {
     reply.code(403).send({ error: 'Admin access required' });
     return;
@@ -59,12 +59,12 @@ export async function adminRoutes(fastify: FastifyInstance) {
         });
 
         return {
-          users: users.map((user) => ({
+          users: users.map((user: any) => ({
             id: user.id,
             stackAuthId: user.stackAuthId,
             email: user.email,
             name: user.name,
-            roles: user.userRoles.map((ur) => ur.role.name),
+            roles: user.userRoles.map((ur: any) => ur.role.name),
             createdAt: user.createdAt,
           })),
         };
@@ -166,7 +166,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             id: userRole.user.id,
             email: userRole.user.email,
             name: userRole.user.name,
-            roles: userRole.user.userRoles.map((ur) => ur.role.name),
+            roles: userRole.user.userRoles.map((ur: any) => ur.role.name),
           },
         };
       } catch (error) {
@@ -231,7 +231,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             id: updatedUser!.id,
             email: updatedUser!.email,
             name: updatedUser!.name,
-            roles: updatedUser!.userRoles.map((ur) => ur.role.name),
+            roles: updatedUser!.userRoles.map((ur: any) => ur.role.name),
           },
         };
       } catch (error) {

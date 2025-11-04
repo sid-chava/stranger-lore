@@ -139,7 +139,7 @@ export async function authRoutes(fastify: FastifyInstance) {
           }) || user;
         }
 
-        const roles = user.userRoles.map((ur) => ur.role.name);
+        const roles = user.userRoles.map((ur: any) => ur.role.name);
 
         return {
           id: user.id,
