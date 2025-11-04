@@ -1,6 +1,9 @@
 import './LandingPage.css';
+import { useState } from 'react';
+import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
+import { createTheory } from '../services/api';
 
 function AuthButton() {
   const { isAuthenticated, isLoading, login, logout, user, roleIndicator } = useAuth();
@@ -55,6 +58,38 @@ function AuthButton() {
 }
 
 function LandingPage() {
+  const { isAuthenticated } = useAuth();
+  const [theoryContent, setTheoryContent] = useState('');
+
+  const submitTheory = useMutation({
+    mutationFn: (content: string) => createTheory(content),
+    onSuccess: () => {
+      setTheoryContent('');
+      alert('Theory submitted! It will be reviewed by moderators.');
+    },
+    onError: (error: any) => {
+      alert('Failed to submit theory: ' + (error.message || 'Please log in'));
+    },
+  });
+
+  const handleSubmit = () => {
+    if (!theoryContent.trim()) {
+      alert('Please enter a theory');
+      return;
+    }
+    if (!isAuthenticated) {
+      alert('Please log in to submit a theory');
+      return;
+    }
+    submitTheory.mutate(theoryContent.trim());
+  };
+
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      handleSubmit();
+    }
+  };
+
   return (
     <div className="landing-page">
       {/* Background image */}
@@ -82,10 +117,18 @@ function LandingPage() {
           <input
             type="text"
             className="contribution-input"
+            value={theoryContent}
+            onChange={(e) => setTheoryContent(e.target.value)}
+            onKeyPress={handleKeyPress}
             placeholder="Contribute a 'Stranger Things' fact, easter egg, or theory to contribute to our library..."
+            disabled={submitTheory.isPending}
           />
           <div className="input-actions">
-            <button className="submit-button">
+            <button 
+              className="submit-button"
+              onClick={handleSubmit}
+              disabled={submitTheory.isPending || !isAuthenticated}
+            >
               <img 
                 src="/assets/submit.png" 
                 alt="Submit" 
@@ -119,7 +162,9 @@ function LandingPage() {
             <li className="directory-item">
               &gt; <Link to="/canon" style={{ color: '#dc2626', textDecoration: 'none' }}>BROWSE CANON</Link>
             </li>
-            <li className="directory-item">&gt; TOP THEORIES FOR S5</li>
+            <li className="directory-item">
+              &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
+            </li>
             <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
             <li className="directory-item">&gt; <Link to= "/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
             <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>

@@ -243,3 +243,51 @@ export async function createCanonRevision(pageId: string, input: {
 export async function listCanonFolderPages(folderId: string) {
   return apiRequest<{ pages: any[] }>(`/api/canon/folders/${folderId}/pages`);
 }
+
+// Theory endpoints
+export async function createTheory(content: string) {
+  return apiRequest<{ theory: any }>('/api/theories', {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+  });
+}
+
+export async function getUnmoderatedTheories() {
+  return apiRequest<{ theories: any[] }>('/api/theories/unmoderated');
+}
+
+export async function moderateTheory(id: string, input: {
+  status: 'approved' | 'denied';
+  tagIds?: string[];
+  denialReason?: string;
+}) {
+  return apiRequest<{ theory: any }>(`/api/theories/${id}/moderate`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function getTags() {
+  return apiRequest<{ tags: any[] }>('/api/tags');
+}
+
+export async function createTag(name: string) {
+  return apiRequest<{ tag: any }>('/api/tags', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+  });
+}
+
+export async function getTopTheories() {
+  return apiRequest<{ theories: any[] }>('/api/theories/top');
+}
+
+export async function voteTheory(id: string, value: 1 | -1) {
+  return apiRequest<{ score: number; upvotes: number; downvotes: number; userVote: number }>(
+    `/api/theories/${id}/vote`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ value: value.toString() }),
+    }
+  );
+}

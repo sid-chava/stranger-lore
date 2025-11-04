@@ -23,6 +23,9 @@ model User {
 
   userRoles UserRole[]
   createdAtPages Page[] @relation("PageCreator")
+  createdTheories Theory[]
+  moderatedTheories Theory[] @relation("TheoryModerator")
+  votes Vote[]
 
   @@map("users")
 }
@@ -123,5 +126,68 @@ model NavigationConfig {
 
   @@index([sortOrder])
   @@map("navigation_config")
+}
+
+model Theory {
+  id          String   @id @default(uuid())
+  content     String   // The theory text submitted by user
+  status      String   @default("pending") // pending, approved, denied
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String   @map("created_by_id")
+  moderatedById String? @map("moderated_by_id") // Admin who approved/denied
+  moderatedAt DateTime? @map("moderated_at")
+  denialReason String? @map("denial_reason")
+
+  createdBy User? @relation(fields: [createdById], references: [id], onDelete: Cascade)
+  moderator User? @relation("TheoryModerator", fields: [moderatedById], references: [id])
+  tags      TheoryTag[]
+  votes     Vote[]
+
+  @@index([status])
+  @@index([createdAt])
+  @@index([createdById])
+  @@map("theories")
+}
+
+model Tag {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  theories TheoryTag[]
+
+  @@index([name])
+  @@map("tags")
+}
+
+model TheoryTag {
+  id       String @id @default(uuid())
+  theoryId String @map("theory_id")
+  tagId    String @map("tag_id")
+
+  theory Theory @relation(fields: [theoryId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@unique([theoryId, tagId])
+  @@index([theoryId])
+  @@index([tagId])
+  @@map("theory_tags")
+}
+
+model Vote {
+  id       String   @id @default(uuid())
+  theoryId String  @map("theory_id")
+  userId   String  @map("user_id")
+  value    Int      // 1 for upvote, -1 for downvote
+  createdAt DateTime @default(now()) @map("created_at")
+
+  theory Theory @relation(fields: [theoryId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([theoryId, userId])
+  @@index([theoryId])
+  @@index([userId])
+  @@map("votes")
 }
 

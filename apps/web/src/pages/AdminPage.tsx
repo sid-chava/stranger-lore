@@ -6,8 +6,156 @@ import {
   getCanonFolders,
   createCanonFolder,
   createCanonPage,
+  getUnmoderatedTheories,
+  moderateTheory,
+  getTags,
+  createTag,
 } from '../services/api';
 import './LandingPage.css';
+
+function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerating, isCreatingTag }: {
+  theory: any;
+  tags: any[];
+  onModerate: (data: { id: string; status: 'approved' | 'denied'; tagIds?: string[]; denialReason?: string }) => void;
+  onCreateTag: (name: string) => void;
+  isModerating: boolean;
+  isCreatingTag: boolean;
+}) {
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [newTagName, setNewTagName] = useState('');
+  const [denialReason, setDenialReason] = useState('');
+  const [showDenialInput, setShowDenialInput] = useState(false);
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags((prev) =>
+      prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]
+    );
+  };
+
+  const handleCreateTag = () => {
+    if (!newTagName.trim()) return;
+    onCreateTag(newTagName.trim());
+    setNewTagName('');
+  };
+
+  const handleApprove = () => {
+    if (selectedTags.length === 0) {
+      alert('Please select at least one tag to approve');
+      return;
+    }
+    onModerate({ id: theory.id, status: 'approved', tagIds: selectedTags });
+    setSelectedTags([]);
+  };
+
+  const handleDeny = () => {
+    if (showDenialInput && !denialReason.trim()) {
+      alert('Please provide a denial reason');
+      return;
+    }
+    onModerate({ id: theory.id, status: 'denied', denialReason: denialReason || undefined });
+    setDenialReason('');
+    setShowDenialInput(false);
+  };
+
+  return (
+    <div style={{ border: '1px solid #ef4444', padding: 12, borderRadius: 4, background: 'rgba(0,0,0,0.2)' }}>
+      <div style={{ marginBottom: 8 }}>
+        <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: 1.5 }}>{theory.content}</p>
+        <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.7, color: '#fff' }}>
+          By: {theory.createdBy?.name || theory.createdBy?.email || 'Unknown'} • {new Date(theory.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+      
+      <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div>
+          <label style={{ display: 'block', marginBottom: 4, fontSize: '12px', color: '#ef4444' }}>Select Tags:</label>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+            {tags.map((tag: any) => (
+              <button
+                key={tag.id}
+                onClick={() => toggleTag(tag.id)}
+                style={{
+                  padding: '4px 8px',
+                  background: selectedTags.includes(tag.id) ? '#059669' : '#111827',
+                  color: '#fff',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                {tag.name}
+              </button>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 6 }}>
+            <input
+              value={newTagName}
+              onChange={(e) => setNewTagName(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleCreateTag()}
+              placeholder="New tag name"
+              style={{ padding: '4px 8px', background: '#111827', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, fontSize: '12px', flex: 1 }}
+            />
+            <button
+              onClick={handleCreateTag}
+              disabled={isCreatingTag}
+              style={{ padding: '4px 8px', background: '#2563eb', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, cursor: 'pointer', fontSize: '12px' }}
+            >
+              + Tag
+            </button>
+          </div>
+        </div>
+
+        {showDenialInput && (
+          <div>
+            <label style={{ display: 'block', marginBottom: 4, fontSize: '12px', color: '#ef4444' }}>Denial Reason:</label>
+            <textarea
+              value={denialReason}
+              onChange={(e) => setDenialReason(e.target.value)}
+              placeholder="Reason for denial..."
+              rows={2}
+              style={{ padding: 6, background: '#111827', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, fontSize: '12px', width: '100%' }}
+            />
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            onClick={handleApprove}
+            disabled={isModerating || selectedTags.length === 0}
+            style={{ padding: '6px 12px', background: '#059669', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, cursor: 'pointer', fontSize: '12px' }}
+          >
+            Approve
+          </button>
+          <button
+            onClick={() => {
+              if (!showDenialInput) {
+                setShowDenialInput(true);
+              } else {
+                handleDeny();
+              }
+            }}
+            disabled={isModerating}
+            style={{ padding: '6px 12px', background: '#dc2626', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, cursor: 'pointer', fontSize: '12px' }}
+          >
+            {showDenialInput ? 'Confirm Deny' : 'Deny'}
+          </button>
+          {showDenialInput && (
+            <button
+              onClick={() => {
+                setShowDenialInput(false);
+                setDenialReason('');
+              }}
+              style={{ padding: '6px 12px', background: '#111827', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, cursor: 'pointer', fontSize: '12px' }}
+            >
+              Cancel
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AdminPage() {
   const { isAuthenticated, user } = useAuth();
@@ -19,7 +167,21 @@ function AdminPage() {
     queryFn: () => getCanonFolders(),
   });
 
+  const { data: theoriesData, refetch: refetchTheories } = useQuery({
+    queryKey: ['unmoderated-theories'],
+    queryFn: () => getUnmoderatedTheories(),
+    enabled: isAdmin,
+  });
+
+  const { data: tagsData } = useQuery({
+    queryKey: ['tags'],
+    queryFn: () => getTags(),
+    enabled: isAdmin,
+  });
+
   const folders = foldersData?.folders ?? [];
+  const theories = theoriesData?.theories ?? [];
+  const tags = tagsData?.tags ?? [];
 
   const [folderName, setFolderName] = useState('');
   const [folderSlug, setFolderSlug] = useState('');
@@ -67,6 +229,22 @@ function AdminPage() {
     };
     reader.readAsText(file);
   };
+
+  const moderateTheoryMut = useMutation({
+    mutationFn: ({ id, status, tagIds, denialReason }: { id: string; status: 'approved' | 'denied'; tagIds?: string[]; denialReason?: string }) =>
+      moderateTheory(id, { status, tagIds, denialReason }),
+    onSuccess: () => {
+      refetchTheories();
+      qc.invalidateQueries({ queryKey: ['tags'] });
+    },
+  });
+
+  const createTagMut = useMutation({
+    mutationFn: (name: string) => createTag(name),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tags'] });
+    },
+  });
 
   if (!isAuthenticated || !isAdmin) {
     return (
@@ -210,6 +388,27 @@ function AdminPage() {
               {createPageMut.isPending ? 'Creating...' : 'Create Page'}
             </button>
           </div>
+        </div>
+      </div>
+
+      {/* Theory Moderation */}
+      <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
+        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Moderate Theories</h3>
+        <div style={{ maxHeight: '500px', overflowY: 'auto', display: 'grid', gap: 12 }}>
+          {theories.map((theory: any) => (
+            <TheoryModerationItem
+              key={theory.id}
+              theory={theory}
+              tags={tags}
+              onModerate={moderateTheoryMut.mutate}
+              onCreateTag={createTagMut.mutate}
+              isModerating={moderateTheoryMut.isPending}
+              isCreatingTag={createTagMut.isPending}
+            />
+          ))}
+          {theories.length === 0 && (
+            <div style={{ opacity: 0.7, padding: 20, textAlign: 'center' }}>No unmoderated theories</div>
+          )}
         </div>
       </div>
 

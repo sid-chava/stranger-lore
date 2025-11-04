@@ -8,6 +8,7 @@ import AdminPage from './pages/AdminPage';
 import CanonBrowsePage from './pages/CanonBrowsePage';
 import CanonFolderPageList from './pages/CanonFolderPageList';
 import CanonPageView from './pages/CanonPageView';
+import TopTheoriesPage from './pages/TopTheoriesPage';
 
 function HandlerRoutes() {
   const location = useLocation();
@@ -37,6 +38,7 @@ function AppRoutes() {
       <Route path="/canon" element={<CanonBrowsePage />} />
       <Route path="/canon/folder/:id" element={<CanonFolderPageList />} />
       <Route path="/canon/page/:id" element={<CanonPageView />} />
+      <Route path="/theories" element={<TopTheoriesPage />} />
       <Route path="/admin" element={<AdminPage />} />
     </Routes>
   );

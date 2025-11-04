@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { authRoutes } from './routes/auth.js';
 import { adminRoutes } from './routes/admin.js';
 import { canonRoutes } from './routes/canon.js';
+import { theoryRoutes } from './routes/theories.js';
 
 dotenv.config();
 
@@ -38,6 +39,9 @@ server.register(adminRoutes);
 
 // Register canon routes
 server.register(canonRoutes);
+
+// Register theory routes
+server.register(theoryRoutes);
 
 // Legacy placeholders removed; use canon routes
 
