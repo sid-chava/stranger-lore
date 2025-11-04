@@ -24,8 +24,6 @@ function TheoryItem({ theory }: { theory: any }) {
   };
 
   const score = theory.score || 0;
-  const upvotes = theory.upvotes || 0;
-  const downvotes = theory.downvotes || 0;
   const userVote = theory.userVote;
 
   return (
