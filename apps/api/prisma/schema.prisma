@@ -1,0 +1,127 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum FolderKind {
+  canon
+  theory
+}
+
+model User {
+  id        String   @id @default(uuid())
+  stackAuthId String @unique @map("stack_auth_id") // Maps to Stack Auth user ID
+  email     String?
+  name      String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  userRoles UserRole[]
+  createdAtPages Page[] @relation("PageCreator")
+
+  @@map("users")
+}
+
+model Role {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  userRoles UserRole[]
+
+  @@map("roles")
+}
+
+model UserRole {
+  id     String @id @default(uuid())
+  userId String @map("user_id")
+  roleId String @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
+}
+
+model Folder {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  parentId    String?  @map("parent_id")
+  description String?
+  sortOrder   Int      @default(0) @map("sort_order")
+  isFeatured  Boolean  @default(false) @map("is_featured")
+  kind        FolderKind @default(canon)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  parent   Folder?   @relation("FolderHierarchy", fields: [parentId], references: [id], onDelete: Cascade)
+  children Folder[]  @relation("FolderHierarchy")
+  pages    Page[]
+  navigationConfig NavigationConfig?
+
+  @@index([parentId])
+  @@index([slug])
+  @@map("folders")
+}
+
+model Page {
+  id          String   @id @default(uuid())
+  folderId    String   @map("folder_id")
+  title       String
+  slug        String
+  status      String   @default("draft") // draft, published, archived
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  createdById String?  @map("created_by_id")
+
+  createdBy User?         @relation("PageCreator", fields: [createdById], references: [id])
+  folder   Folder        @relation(fields: [folderId], references: [id])
+  revisions PageRevision[]
+
+  @@unique([folderId, slug])
+  @@index([folderId])
+  @@index([slug])
+  @@index([status])
+  @@map("pages")
+}
+
+model PageRevision {
+  id        String   @id @default(uuid())
+  pageId    String   @map("page_id")
+  content   String   // Markdown or JSON content
+  version   Int      @default(1)
+  createdAt DateTime @default(now()) @map("created_at")
+  createdBy String?  @map("created_by") // User ID who made this revision
+
+  page Page @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([pageId])
+  @@index([pageId, version])
+  @@map("page_revisions")
+}
+
+model NavigationConfig {
+  id        String   @id @default(uuid())
+  folderId  String   @unique @map("folder_id")
+  sortOrder Int      @map("sort_order")
+  isVisible Boolean  @default(true) @map("is_visible")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  folder Folder @relation(fields: [folderId], references: [id], onDelete: Cascade)
+
+  @@index([sortOrder])
+  @@map("navigation_config")
+}
+
