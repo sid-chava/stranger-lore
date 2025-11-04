@@ -4,8 +4,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getCanonFolders,
-  createCanonFolder,
-  createCanonPage,
+  // createCanonFolder,
+  // createCanonPage,
   getUnmoderatedTheories,
   moderateTheory,
   getTags,
@@ -183,52 +183,53 @@ function AdminPage() {
   const theories = theoriesData?.theories ?? [];
   const tags = tagsData?.tags ?? [];
 
-  const [folderName, setFolderName] = useState('');
-  const [folderSlug, setFolderSlug] = useState('');
-  const [folderParent, setFolderParent] = useState<string | ''>('');
+  // Commented out for now - folder/page creation disabled
+  // const [folderName, setFolderName] = useState('');
+  // const [folderSlug, setFolderSlug] = useState('');
+  // const [folderParent, setFolderParent] = useState<string | ''>('');
 
-  const [pageTitle, setPageTitle] = useState('');
-  const [pageSlug, setPageSlug] = useState('');
-  const [pageFolder, setPageFolder] = useState<string | ''>('');
-  const [pageMarkdown, setPageMarkdown] = useState('');
-  const [useFileUpload, setUseFileUpload] = useState(false);
-  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
+  // const [pageTitle, setPageTitle] = useState('');
+  // const [pageSlug, setPageSlug] = useState('');
+  // const [pageFolder, setPageFolder] = useState<string | ''>('');
+  // const [pageMarkdown, setPageMarkdown] = useState('');
+  // const [useFileUpload, setUseFileUpload] = useState(false);
+  // const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
-  const createFolderMut = useMutation({
-    mutationFn: (input: {
-      name: string; slug?: string; parentId?: string | null;
-    }) => createCanonFolder(input),
-    onSuccess: () => {
-      setFolderName(''); setFolderSlug(''); setFolderParent('');
-      qc.invalidateQueries({ queryKey: ['canon-folders'] });
-    },
-  });
+  // const createFolderMut = useMutation({
+  //   mutationFn: (input: {
+  //     name: string; slug?: string; parentId?: string | null;
+  //   }) => createCanonFolder(input),
+  //   onSuccess: () => {
+  //     setFolderName(''); setFolderSlug(''); setFolderParent('');
+  //     qc.invalidateQueries({ queryKey: ['canon-folders'] });
+  //   },
+  // });
 
-  const createPageMut = useMutation({
-    mutationFn: (input: { title: string; slug?: string; folderId: string; markdown: string; }) => createCanonPage(input),
-    onSuccess: () => {
-      setPageTitle(''); setPageSlug(''); setPageFolder(''); setPageMarkdown('');
-      setUseFileUpload(false); setUploadedFileName(null);
-    },
-  });
+  // const createPageMut = useMutation({
+  //   mutationFn: (input: { title: string; slug?: string; folderId: string; markdown: string; }) => createCanonPage(input),
+  //   onSuccess: () => {
+  //     setPageTitle(''); setPageSlug(''); setPageFolder(''); setPageMarkdown('');
+  //     setUseFileUpload(false); setUploadedFileName(null);
+  //   },
+  // });
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  // const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  //   const file = e.target.files?.[0];
+  //   if (!file) return;
 
-    if (!file.name.endsWith('.md')) {
-      alert('Please upload a .md file');
-      return;
-    }
+  //   if (!file.name.endsWith('.md')) {
+  //     alert('Please upload a .md file');
+  //     return;
+  //   }
 
-    setUploadedFileName(file.name);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      const content = event.target?.result as string;
-      setPageMarkdown(content);
-    };
-    reader.readAsText(file);
-  };
+  //   setUploadedFileName(file.name);
+  //   const reader = new FileReader();
+  //   reader.onload = (event) => {
+  //     const content = event.target?.result as string;
+  //     setPageMarkdown(content);
+  //   };
+  //   reader.readAsText(file);
+  // };
 
   const moderateTheoryMut = useMutation({
     mutationFn: ({ id, status, tagIds, denialReason }: { id: string; status: 'approved' | 'denied'; tagIds?: string[]; denialReason?: string }) =>
@@ -266,8 +267,8 @@ function AdminPage() {
         <h2 style={{ margin: 0, color: '#ef4444' }}>Admin — Browse Canon</h2>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
-        {/* Create Folder */}
+      {/* Create Folder and Page sections - commented out for now */}
+      {/* <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20 }}>
         <div style={{ background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
           <h3 style={{ marginTop: 0, color: '#ef4444' }}>Create Folder</h3>
           <div style={{ display: 'grid', gap: 8 }}>
@@ -303,7 +304,6 @@ function AdminPage() {
           </div>
         </div>
 
-        {/* Create Page */}
         <div style={{ background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
           <h3 style={{ marginTop: 0, color: '#ef4444' }}>Create Page</h3>
           <div style={{ display: 'grid', gap: 8 }}>
@@ -389,7 +389,7 @@ function AdminPage() {
             </button>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Theory Moderation */}
       <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
