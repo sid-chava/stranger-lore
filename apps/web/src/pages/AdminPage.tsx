@@ -39,11 +39,8 @@ function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerat
   };
 
   const handleApprove = () => {
-    if (selectedTags.length === 0) {
-      alert('Please select at least one tag to approve');
-      return;
-    }
-    onModerate({ id: theory.id, status: 'approved', tagIds: selectedTags });
+    // Tags are optional for approval - admin can approve without tags if needed
+    onModerate({ id: theory.id, status: 'approved', tagIds: selectedTags.length > 0 ? selectedTags : undefined });
     setSelectedTags([]);
   };
 
@@ -70,23 +67,27 @@ function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerat
         <div>
           <label style={{ display: 'block', marginBottom: 4, fontSize: '12px', color: '#ef4444' }}>Select Tags:</label>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
-            {tags.map((tag: any) => (
-              <button
-                key={tag.id}
-                onClick={() => toggleTag(tag.id)}
-                style={{
-                  padding: '4px 8px',
-                  background: selectedTags.includes(tag.id) ? '#059669' : '#111827',
-                  color: '#fff',
-                  border: '1px solid #ef4444',
-                  borderRadius: 4,
-                  cursor: 'pointer',
-                  fontSize: '12px',
-                }}
-              >
-                {tag.name}
-              </button>
-            ))}
+            {tags.length === 0 ? (
+              <span style={{ fontSize: '12px', color: '#fff', opacity: 0.7 }}>No tags yet. Create one below.</span>
+            ) : (
+              tags.map((tag: any) => (
+                <button
+                  key={tag.id}
+                  onClick={() => toggleTag(tag.id)}
+                  style={{
+                    padding: '4px 8px',
+                    background: selectedTags.includes(tag.id) ? '#059669' : '#111827',
+                    color: '#fff',
+                    border: '1px solid #ef4444',
+                    borderRadius: 4,
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  {tag.name}
+                </button>
+              ))
+            )}
           </div>
           <div style={{ display: 'flex', gap: 6 }}>
             <input
@@ -122,10 +123,10 @@ function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerat
         <div style={{ display: 'flex', gap: 8 }}>
           <button
             onClick={handleApprove}
-            disabled={isModerating || selectedTags.length === 0}
+            disabled={isModerating}
             style={{ padding: '6px 12px', background: '#059669', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, cursor: 'pointer', fontSize: '12px' }}
           >
-            Approve
+            {isModerating ? 'Approving...' : 'Approve'}
           </button>
           <button
             onClick={() => {
@@ -237,6 +238,10 @@ function AdminPage() {
     onSuccess: () => {
       refetchTheories();
       qc.invalidateQueries({ queryKey: ['tags'] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to moderate theory:', error);
+      alert('Failed to moderate theory: ' + (error.message || 'Unknown error'));
     },
   });
 
@@ -436,7 +441,9 @@ function AdminPage() {
           <li className="directory-item">
             &gt; <Link to="/canon" style={{ color: '#dc2626', textDecoration: 'none' }}>BROWSE CANON</Link>
           </li>
-          <li className="directory-item">&gt; TOP THEORIES FOR S5</li>
+          <li className="directory-item">
+            &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
+          </li>
           <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
           <li className="directory-item">&gt; <Link to= "/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
           <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
