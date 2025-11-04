@@ -9,9 +9,18 @@ dotenv.config();
 
 const server = fastify({ logger: true });
 
+const normalizeOrigin = (origin?: string | null) =>
+  origin ? origin.replace(/\/$/, '') : undefined;
+
+const allowedOrigins = [
+  normalizeOrigin(process.env.FRONTEND_URL),
+  normalizeOrigin(process.env.ADDITIONAL_FRONTEND_URL),
+  'http://localhost:5173',
+].filter((origin): origin is string => Boolean(origin));
+
 // Register CORS
 server.register(cors, {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: allowedOrigins,
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'x-stack-auth'],
 });
