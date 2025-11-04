@@ -1,8 +1,7 @@
 import { FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { authenticateUser, optionalAuth } from '../middleware/auth';
-import { adminRoutes } from './admin';
+import { authenticateUser, optionalAuth } from '../middleware/auth.js';
 
 const prisma = new PrismaClient();
 
