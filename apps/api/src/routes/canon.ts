@@ -1,8 +1,8 @@
 import { FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { z } from 'zod';
-import { authenticateUser } from '../middleware/auth';
-import { adminRoutes } from './admin';
+import { authenticateUser } from '../middleware/auth.js';
+import { adminRoutes } from './admin.js';
 
 const prisma = new PrismaClient();
 
@@ -314,5 +314,3 @@ export async function canonRoutes(fastify: FastifyInstance) {
     }
   );
 }
-
-

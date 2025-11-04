@@ -1,9 +1,9 @@
 import fastify from 'fastify';
 import cors from '@fastify/cors';
 import dotenv from 'dotenv';
-import { authRoutes } from './routes/auth';
-import { adminRoutes } from './routes/admin';
-import { canonRoutes } from './routes/canon';
+import { authRoutes } from './routes/auth.js';
+import { adminRoutes } from './routes/admin.js';
+import { canonRoutes } from './routes/canon.js';
 
 dotenv.config();
 
@@ -46,4 +46,3 @@ const start = async () => {
 };
 
 start();
-

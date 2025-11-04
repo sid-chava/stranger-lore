@@ -1,6 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
-import { authenticateUser } from '../middleware/auth';
+import { authenticateUser } from '../middleware/auth.js';
 import jwt from 'jsonwebtoken';
 
 const prisma = new PrismaClient();
@@ -155,4 +155,3 @@ export async function authRoutes(fastify: FastifyInstance) {
     }
   );
 }
-
