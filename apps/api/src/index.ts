@@ -35,7 +35,8 @@ server.register(canonRoutes);
 // Start server
 const start = async () => {
   try {
-    const port = Number(process.env.API_PORT) || 3000;
+    // Prefer Railway/Render/etc. provided PORT, then API_PORT, then 3000 locally
+    const port = Number(process.env.PORT) || Number(process.env.API_PORT) || 3000;
     await server.listen({ port, host: '0.0.0.0' });
     console.log(`Server listening on http://localhost:${port}`);
   } catch (err) {
