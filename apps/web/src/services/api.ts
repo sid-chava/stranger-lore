@@ -77,19 +77,21 @@ function getAccessTokenFromCookie(): string | null {
 export async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit,
-  app?: StackClientApp
+  _app?: StackClientApp
 ): Promise<T> {
-  const headers: HeadersInit = {
-    'Content-Type': 'application/json',
-    ...options?.headers,
-  };
+  const headers = new Headers(options?.headers ?? {});
+  if (!headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
 
   // Get access token from cookies (Stack Auth stores it in stack-access cookie)
   const accessToken = getAccessTokenFromCookie();
   
   if (accessToken) {
     // Use Authorization Bearer header
-    headers['Authorization'] = `Bearer ${accessToken}`;
+    if (!headers.has('Authorization')) {
+      headers.set('Authorization', `Bearer ${accessToken}`);
+    }
   } else if (import.meta.env.DEV) {
     console.warn('No access token found for API request to', endpoint);
   }
@@ -241,4 +243,3 @@ export async function createCanonRevision(pageId: string, input: {
 export async function listCanonFolderPages(folderId: string) {
   return apiRequest<{ pages: any[] }>(`/api/canon/folders/${folderId}/pages`);
 }
-

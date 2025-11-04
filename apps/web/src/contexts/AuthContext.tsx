@@ -2,13 +2,6 @@ import { useUser, useStackApp } from '@stackframe/react';
 import { useEffect, useState } from 'react';
 import { getCurrentUser } from '../services/api';
 
-interface UserWithRoles {
-  id: string;
-  email?: string;
-  name?: string;
-  roles: string[];
-}
-
 // Simplified auth context using Stack React hooks
 export function useAuth() {
   const app = useStackApp();
@@ -40,7 +33,7 @@ export function useAuth() {
   };
 
   const logout = async () => {
-    await app.signOut();
+    await user?.signOut();
     setUserRoles([]);
   };
 
@@ -66,4 +59,3 @@ export function useAuth() {
     roleIndicator: getRoleIndicator(userRoles),
   };
 }
-

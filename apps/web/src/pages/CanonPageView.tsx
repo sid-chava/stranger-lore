@@ -1,6 +1,6 @@
 import { useParams, Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { getCanonPage, getCanonFolders } from '../services/api';
+import { getCanonPage } from '../services/api';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import './LandingPage.css';
@@ -32,5 +32,4 @@ function CanonPageView() {
 }
 
 export default CanonPageView;
-
 
