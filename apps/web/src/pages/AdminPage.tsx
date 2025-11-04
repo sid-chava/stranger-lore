@@ -28,6 +28,8 @@ function AdminPage() {
   const [pageSlug, setPageSlug] = useState('');
   const [pageFolder, setPageFolder] = useState<string | ''>('');
   const [pageMarkdown, setPageMarkdown] = useState('');
+  const [useFileUpload, setUseFileUpload] = useState(false);
+  const [uploadedFileName, setUploadedFileName] = useState<string | null>(null);
 
   const createFolderMut = useMutation({
     mutationFn: (input: {
@@ -43,8 +45,27 @@ function AdminPage() {
     mutationFn: (input: { title: string; slug?: string; folderId: string; markdown: string; }) => createCanonPage(input),
     onSuccess: () => {
       setPageTitle(''); setPageSlug(''); setPageFolder(''); setPageMarkdown('');
+      setUseFileUpload(false); setUploadedFileName(null);
     },
   });
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.name.endsWith('.md')) {
+      alert('Please upload a .md file');
+      return;
+    }
+
+    setUploadedFileName(file.name);
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      setPageMarkdown(content);
+    };
+    reader.readAsText(file);
+  };
 
   if (!isAuthenticated || !isAdmin) {
     return (
@@ -129,13 +150,57 @@ function AdminPage() {
                 <option key={f.id} value={f.id}>{f.name}</option>
               ))}
             </select>
-            <textarea
-              value={pageMarkdown}
-              onChange={(e) => setPageMarkdown(e.target.value)}
-              placeholder="Markdown content"
-              rows={8}
-              style={{ padding: 8, background: '#0b2459', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, resize: 'vertical' }}
-            />
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setUseFileUpload(!useFileUpload);
+                  if (useFileUpload) {
+                    setPageMarkdown('');
+                    setUploadedFileName(null);
+                  }
+                }}
+                style={{
+                  padding: '6px 12px',
+                  background: useFileUpload ? '#059669' : '#111827',
+                  color: '#fff',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                  fontSize: '12px',
+                }}
+              >
+                {useFileUpload ? '✓ Using File' : 'Upload .md File'}
+              </button>
+              {uploadedFileName && (
+                <span style={{ fontSize: '12px', opacity: 0.8, color: '#22c55e' }}>
+                  {uploadedFileName}
+                </span>
+              )}
+            </div>
+            {useFileUpload ? (
+              <input
+                type="file"
+                accept=".md"
+                onChange={handleFileUpload}
+                style={{
+                  padding: 8,
+                  background: '#111827',
+                  color: '#fff',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  cursor: 'pointer',
+                }}
+              />
+            ) : (
+              <textarea
+                value={pageMarkdown}
+                onChange={(e) => setPageMarkdown(e.target.value)}
+                placeholder="Markdown content"
+                rows={8}
+                style={{ padding: 8, background: '#0b2459', color: '#fff', border: '1px solid #ef4444', borderRadius: 4, resize: 'vertical' }}
+              />
+            )}
             <button
               onClick={() => pageFolder && createPageMut.mutate({ title: pageTitle, slug: pageSlug || undefined, folderId: pageFolder, markdown: pageMarkdown })}
               disabled={!pageTitle || !pageFolder || !pageMarkdown || createPageMut.isPending}

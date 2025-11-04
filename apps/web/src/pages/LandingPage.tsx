@@ -121,7 +121,8 @@ function LandingPage() {
             </li>
             <li className="directory-item">&gt; TOP THEORIES FOR S5</li>
             <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
-            <li className="directory-item">&gt; JOIN OUR DISCORD</li>
+            <li className="directory-item">&gt; <Link to= "/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
+            <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
           </ul>
         </div>
 
