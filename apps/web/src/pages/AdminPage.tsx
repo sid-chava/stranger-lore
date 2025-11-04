@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getCanonFolders,
@@ -96,13 +97,13 @@ function AdminPage() {
               value={folderName}
               onChange={(e) => setFolderName(e.target.value)}
               placeholder="Folder name"
-              style={{ padding: 8, background: '#2563eb', color: '#fff', border: '1px solid #ef4444', borderRadius: 4 }}
+              style={{ padding: 8, background: '#111827', color: '#fff', border: '1px solid #ef4444', borderRadius: 4 }}
             />
             <input
               value={folderSlug}
               onChange={(e) => setFolderSlug(e.target.value)}
               placeholder="Slug (optional)"
-              style={{ padding: 8, background: '#2563eb', color: '#fff', border: '1px solid #ef4444', borderRadius: 4 }}
+              style={{ padding: 8, background: '#111827', color: '#fff', border: '1px solid #ef4444', borderRadius: 4 }}
             />
             <select
               value={folderParent}
@@ -132,13 +133,13 @@ function AdminPage() {
               value={pageTitle}
               onChange={(e) => setPageTitle(e.target.value)}
               placeholder="Page title"
-              style={{ padding: 8, background: '#2563eb', color: '#fff', border: '1px solid #ef4444', borderRadius: 4 }}
+              style={{ padding: 8, background: '#111827', color: '#fff', border: '1px solid #ef4444', borderRadius: 4 }}
             />
             <input
               value={pageSlug}
               onChange={(e) => setPageSlug(e.target.value)}
               placeholder="Slug (optional)"
-              style={{ padding: 8, background: '#2563eb', color: '#fff', border: '1px solid #ef4444', borderRadius: 4 }}
+              style={{ padding: 8, background: '#111827', color: '#fff', border: '1px solid #ef4444', borderRadius: 4 }}
             />
             <select
               value={pageFolder}
@@ -228,6 +229,39 @@ function AdminPage() {
           )}
         </div>
       </div>
+
+      {/* Directory section */}
+      <div className="directory-section">
+        <h2 className="directory-title">DIRECTORY</h2>
+        <ul className="directory-list">
+          <li className="directory-item">
+            &gt; <Link to="/canon" style={{ color: '#dc2626', textDecoration: 'none' }}>BROWSE CANON</Link>
+          </li>
+          <li className="directory-item">&gt; TOP THEORIES FOR S5</li>
+          <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
+          <li className="directory-item">&gt; <Link to= "/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
+          <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
+        </ul>
+      </div>
+
+      {/* Footer section */}
+      <footer className="footer-section">
+        <div className="footer-left">
+          <div className="social-links">
+            <a href="https://x.com/loreobsessed" className="social-link">
+              <img src="/assets/social-x.png" alt="X/Twitter" className="social-icon" />
+            </a>
+            <a href="https://instagram.com/loreobsessed" className="social-link">
+              <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
+            </a>
+            <a href="#" className="social-link">
+              <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
+            </a>
+          </div>
+          <p className="contributions-count">1,987 verified contributions</p>
+          <p className="built-by">Built by Lore.</p>
+        </div>
+      </footer>
       </div>
     </div>
   );
