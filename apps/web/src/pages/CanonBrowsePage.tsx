@@ -100,6 +100,38 @@ function CanonBrowsePage() {
           ))}
           {children.length === 0 && <div style={{ opacity: 0.7 }}>No folders</div>}
         </div>
+
+        {/* Directory section */}
+        <div className="directory-section">
+          <h2 className="directory-title">DIRECTORY</h2>
+          <ul className="directory-list">
+            <li className="directory-item">
+              &gt; <Link to="/canon" style={{ color: '#dc2626', textDecoration: 'none' }}>BROWSE CANON</Link>
+            </li>
+            <li className="directory-item">&gt; TOP THEORIES FOR S5</li>
+            <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
+            <li className="directory-item">&gt; JOIN OUR DISCORD</li>
+          </ul>
+        </div>
+
+        {/* Footer section */}
+        <footer className="footer-section">
+          <div className="footer-left">
+            <div className="social-links">
+              <a href="https://x.com/loreobsessed" className="social-link">
+                <img src="/assets/social-x.png" alt="X/Twitter" className="social-icon" />
+              </a>
+              <a href="https://instagram.com/loreobsessed" className="social-link">
+                <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
+              </a>
+              <a href="#" className="social-link">
+                <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
+              </a>
+            </div>
+            <p className="contributions-count">1,987 verified contributions</p>
+            <p className="built-by">Built by Lore.</p>
+          </div>
+        </footer>
       </div>
     </div>
   );
