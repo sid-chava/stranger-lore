@@ -169,12 +169,14 @@ function LandingPage() {
           <h2 className="directory-title">DIRECTORY</h2>
           <ul className="directory-list">
             <li className="directory-item">
-              &gt; <Link to="/canon" style={{ color: '#dc2626', textDecoration: 'none' }}>BROWSE CANON</Link>
+              &gt; <Link to="/" style={{ color: '#dc2626', textDecoration: 'none' }}>RETURN HOME</Link>
             </li>
             <li className="directory-item">
               &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
             </li>
-            <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
+            <li className="directory-item">
+              &gt; <Link to="/leaderboard" style={{ color: '#dc2626', textDecoration: 'none' }}>CONTRIBUTOR LEADERBOARD</Link>
+            </li>
             <li className="directory-item">&gt; <Link to= "/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
             <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
           </ul>

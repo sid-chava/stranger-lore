@@ -3,9 +3,6 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
-  getCanonFolders,
-  // createCanonFolder,
-  // createCanonPage,
   getUnmoderatedTheories,
   moderateTheory,
   getTags,
@@ -628,11 +625,6 @@ function AdminPage() {
   const isAdmin = !!user?.roles?.includes('admin');
   const qc = useQueryClient();
 
-  const { data: foldersData } = useQuery({
-    queryKey: ['canon-folders'],
-    queryFn: () => getCanonFolders(),
-  });
-
   const { data: theoriesData, refetch: refetchTheories } = useQuery({
     queryKey: ['unmoderated-theories'],
     queryFn: () => getUnmoderatedTheories(),
@@ -651,7 +643,6 @@ function AdminPage() {
     enabled: isAdmin,
   });
 
-  const folders = foldersData?.folders ?? [];
   const theories = theoriesData?.theories ?? [];
   const tags = tagsData?.tags ?? [];
   const incompleteTheories = incompleteData?.theories ?? [];
@@ -959,22 +950,6 @@ function AdminPage() {
         </div>
       </div>
 
-          {/* Folder list */}
-          <div style={{ marginTop: 20 }}>
-            <h3 style={{ marginTop: 0, color: '#ef4444' }}>Folders</h3>
-            <div style={{ display: 'grid', gap: 8 }}>
-              {folders.map((f: any) => (
-                <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: '#ef4444' }}>•</span>
-                  <span>{f.name}</span>
-                  <span style={{ opacity: 0.7 }}>({f.slug})</span>
-                </div>
-              ))}
-              {folders.length === 0 && (
-                <div style={{ opacity: 0.7 }}>No folders yet</div>
-              )}
-            </div>
-          </div>
         </div>
 
         {/* Directory section */}
@@ -982,12 +957,14 @@ function AdminPage() {
           <h2 className="directory-title">DIRECTORY</h2>
           <ul className="directory-list">
             <li className="directory-item">
-              &gt; <Link to="/canon" style={{ color: '#dc2626', textDecoration: 'none' }}>BROWSE CANON</Link>
+              &gt; <Link to="/" style={{ color: '#dc2626', textDecoration: 'none' }}>RETURN HOME</Link>
             </li>
             <li className="directory-item">
               &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
             </li>
-            <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
+          <li className="directory-item">
+            &gt; <Link to="/leaderboard" style={{ color: '#dc2626', textDecoration: 'none' }}>CONTRIBUTOR LEADERBOARD</Link>
+          </li>
             <li className="directory-item">&gt; <Link to="/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
             <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
           </ul>

@@ -9,6 +9,7 @@ import CanonBrowsePage from './pages/CanonBrowsePage';
 import CanonFolderPageList from './pages/CanonFolderPageList';
 import CanonPageView from './pages/CanonPageView';
 import TopTheoriesPage from './pages/TopTheoriesPage';
+import ContributorLeaderboardPage from './pages/ContributorLeaderboardPage';
 import UsernamePrompt from './components/UsernamePrompt';
 
 function HandlerRoutes() {
@@ -40,6 +41,7 @@ function AppRoutes() {
       <Route path="/canon/folder/:id" element={<CanonFolderPageList />} />
       <Route path="/canon/page/:id" element={<CanonPageView />} />
       <Route path="/theories" element={<TopTheoriesPage />} />
+      <Route path="/leaderboard" element={<ContributorLeaderboardPage />} />
       <Route path="/admin" element={<AdminPage />} />
     </Routes>
   );
