@@ -51,10 +51,12 @@ function TheoryModerationItem({
   const [denialReason, setDenialReason] = useState('');
   const [showDenialInput, setShowDenialInput] = useState(false);
   const [showSplitModal, setShowSplitModal] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
 
   useEffect(() => {
     setSelectedTags(theory.tags?.map((t: any) => t.tag.id) ?? []);
     setTitle(theory.title || '');
+    setIsExpanded(false);
   }, [theory.id, theory.title, theory.tags]);
 
   const toggleTag = (tagId: string) => {
@@ -97,7 +99,52 @@ function TheoryModerationItem({
   return (
     <div style={{ border: '1px solid #ef4444', padding: 12, borderRadius: 4, background: 'rgba(0,0,0,0.2)' }}>
       <div style={{ marginBottom: 8 }}>
-        <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{theory.content}</p>
+        <div
+          style={{
+            position: 'relative',
+            maxHeight: isExpanded ? 'none' : 140,
+            overflow: isExpanded ? 'auto' : 'hidden',
+            paddingRight: isExpanded ? 0 : 4,
+          }}
+        >
+          <p
+            style={{
+              margin: 0,
+              color: '#fff',
+              fontSize: '14px',
+              lineHeight: 1.5,
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {theory.content}
+          </p>
+          {!isExpanded && theory.content.length > 400 && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: 40,
+                background: 'linear-gradient(to bottom, rgba(11,18,32,0) 0%, rgba(11,18,32,0.9) 60%, rgba(11,18,32,1) 100%)',
+              }}
+            />
+          )}
+        </div>
+        <button
+          onClick={() => setIsExpanded((prev) => !prev)}
+          style={{
+            border: 'none',
+            background: 'none',
+            color: '#60a5fa',
+            cursor: 'pointer',
+            fontSize: 12,
+            marginTop: 6,
+            padding: 0,
+          }}
+        >
+          {isExpanded ? 'Collapse' : 'Expand'}
+        </button>
         <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.7, color: '#fff' }}>
           By: {theory.createdBy?.name || theory.createdBy?.email || 'Unknown'} • {new Date(theory.createdAt).toLocaleDateString()}
         </p>
@@ -726,8 +773,19 @@ function AdminPage() {
   return (
     <div className="landing-page">
       <div className="background-image" />
-      <div className="main-content" style={{ padding: 20, color: '#fff', fontFamily: 'Roboto Mono, monospace' }}>
-      <div style={{ borderBottom: '2px solid #b91c1c', paddingBottom: 8, marginBottom: 16 }}>
+      <div
+        className="main-content"
+        style={{
+          padding: 20,
+          color: '#fff',
+          fontFamily: 'Roboto Mono, monospace',
+          minHeight: '100vh',
+          display: 'flex',
+          flexDirection: 'column',
+        }}
+      >
+        <div style={{ flex: 1 }}>
+          <div style={{ borderBottom: '2px solid #b91c1c', paddingBottom: 8, marginBottom: 16 }}>
         <h2 style={{ margin: 0, color: '#ef4444' }}>Admin — Browse Canon</h2>
       </div>
 
@@ -901,57 +959,58 @@ function AdminPage() {
         </div>
       </div>
 
-      {/* Folder list */}
-      <div style={{ marginTop: 20 }}>
-        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Folders</h3>
-        <div style={{ display: 'grid', gap: 8 }}>
-          {folders.map((f: any) => (
-            <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ color: '#ef4444' }}>•</span>
-              <span>{f.name}</span>
-              <span style={{ opacity: 0.7 }}>({f.slug})</span>
+          {/* Folder list */}
+          <div style={{ marginTop: 20 }}>
+            <h3 style={{ marginTop: 0, color: '#ef4444' }}>Folders</h3>
+            <div style={{ display: 'grid', gap: 8 }}>
+              {folders.map((f: any) => (
+                <div key={f.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: '#ef4444' }}>•</span>
+                  <span>{f.name}</span>
+                  <span style={{ opacity: 0.7 }}>({f.slug})</span>
+                </div>
+              ))}
+              {folders.length === 0 && (
+                <div style={{ opacity: 0.7 }}>No folders yet</div>
+              )}
             </div>
-          ))}
-          {folders.length === 0 && (
-            <div style={{ opacity: 0.7 }}>No folders yet</div>
-          )}
-        </div>
-      </div>
-
-      {/* Directory section */}
-      <div className="directory-section">
-        <h2 className="directory-title">DIRECTORY</h2>
-        <ul className="directory-list">
-          <li className="directory-item">
-            &gt; <Link to="/canon" style={{ color: '#dc2626', textDecoration: 'none' }}>BROWSE CANON</Link>
-          </li>
-          <li className="directory-item">
-            &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
-          </li>
-          <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
-          <li className="directory-item">&gt; <Link to= "/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
-          <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
-        </ul>
-      </div>
-
-      {/* Footer section */}
-      <footer className="footer-section">
-        <div className="footer-left">
-          <div className="social-links">
-            <a href="https://x.com/loreobsessed" className="social-link">
-              <img src="/assets/social-x.png" alt="X/Twitter" className="social-icon" />
-            </a>
-            <a href="https://instagram.com/loreobsessed" className="social-link">
-              <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
-            </a>
-            <a href="#" className="social-link">
-              <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
-            </a>
           </div>
-          <p className="contributions-count">1,987 verified contributions</p>
-          <p className="built-by">Built by Lore.</p>
         </div>
-      </footer>
+
+        {/* Directory section */}
+        <div className="directory-section">
+          <h2 className="directory-title">DIRECTORY</h2>
+          <ul className="directory-list">
+            <li className="directory-item">
+              &gt; <Link to="/canon" style={{ color: '#dc2626', textDecoration: 'none' }}>BROWSE CANON</Link>
+            </li>
+            <li className="directory-item">
+              &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
+            </li>
+            <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
+            <li className="directory-item">&gt; <Link to="/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
+            <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
+          </ul>
+        </div>
+
+        {/* Footer section */}
+        <footer className="footer-section">
+          <div className="footer-left">
+            <div className="social-links">
+              <a href="https://x.com/loreobsessed" className="social-link">
+                <img src="/assets/social-x.png" alt="X/Twitter" className="social-icon" />
+              </a>
+              <a href="https://instagram.com/loreobsessed" className="social-link">
+                <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
+              </a>
+              <a href="#" className="social-link">
+                <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
+              </a>
+            </div>
+            <p className="contributions-count">1,987 verified contributions</p>
+            <p className="built-by">Built by Lore.</p>
+          </div>
+        </footer>
       </div>
     </div>
   );
