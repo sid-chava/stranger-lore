@@ -10,6 +10,7 @@ import {
   getIncompleteTheories,
   updateTheoryTitle,
   splitTheory,
+  updateTheoryContent,
 } from '../services/api';
 import './LandingPage.css';
 import AnimatedCounter from '../components/AnimatedCounter';
@@ -29,6 +30,7 @@ type TheoryModerationItemProps = {
   }) => void;
   onCreateTag: (name: string) => void;
   onSplit: (data: { id: string; parts: { title: string; content: string; tagIds?: string[] }[] }) => void;
+  onUpdateContent: (data: { id: string; content: string }) => void;
   isModerating: boolean;
   isCreatingTag: boolean;
   isSplitting: boolean;
@@ -40,6 +42,7 @@ function TheoryModerationItem({
   onModerate,
   onCreateTag,
   onSplit,
+  onUpdateContent,
   isModerating,
   isCreatingTag,
   isSplitting,
@@ -48,18 +51,22 @@ function TheoryModerationItem({
     theory.tags?.map((t: any) => t.tag.id) ?? []
   );
   const [title, setTitle] = useState(theory.title || '');
+  const [contentDraft, setContentDraft] = useState(theory.content);
   const [newTagName, setNewTagName] = useState('');
   const [denialReason, setDenialReason] = useState('');
   const [showDenialInput, setShowDenialInput] = useState(false);
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
+  const [isEditingContent, setIsEditingContent] = useState(false);
 
   useEffect(() => {
     setSelectedTags(theory.tags?.map((t: any) => t.tag.id) ?? []);
     setTitle(theory.title || '');
+    setContentDraft(theory.content);
     setIsExpanded(false);
-  }, [theory.id, theory.title, theory.tags]);
+    setIsEditingContent(false);
+  }, [theory.id, theory.title, theory.tags, theory.content]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
@@ -101,7 +108,7 @@ function TheoryModerationItem({
   return (
     <div style={{ border: '1px solid #ef4444', padding: 12, borderRadius: 4, background: 'rgba(0,0,0,0.2)' }}>
       <div style={{ marginBottom: 8 }}>
-        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8, flexWrap: 'wrap' }}>
           <button
             onClick={() => setIsExpanded((prev) => !prev)}
             style={{
@@ -128,67 +135,134 @@ function TheoryModerationItem({
           >
             Preview Markdown
           </button>
-        </div>
-        <div
-          style={{
-            position: 'relative',
-            maxHeight: isExpanded ? 'none' : 140,
-            overflow: isExpanded ? 'auto' : 'hidden',
-            paddingRight: isExpanded ? 0 : 4,
-            background: 'rgba(15,23,42,0.6)',
-            border: '1px solid rgba(239,68,68,0.3)',
-            borderRadius: 4,
-            padding: 8,
-          }}
-        >
-          <p
+          <button
+            onClick={() => setIsEditingContent((prev) => !prev)}
             style={{
-              margin: 0,
-              color: '#fff',
-              fontSize: '14px',
-              lineHeight: 1.5,
-              whiteSpace: 'pre-wrap',
+              border: 'none',
+              background: 'none',
+              color: '#4ade80',
+              cursor: 'pointer',
+              fontSize: 12,
+              padding: 0,
             }}
           >
-            {theory.content}
-          </p>
-          {!isExpanded && theory.content.length > 400 && (
-            <div
+            {isEditingContent ? 'Cancel Edit' : 'Edit Content'}
+          </button>
+        </div>
+        {isEditingContent ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <textarea
+              value={contentDraft}
+              onChange={(e) => setContentDraft(e.target.value)}
+              rows={6}
               style={{
-                position: 'absolute',
-                bottom: 0,
-                left: 0,
-                right: 0,
-                height: 40,
-                background: 'linear-gradient(to bottom, rgba(11,18,32,0) 0%, rgba(11,18,32,0.9) 60%, rgba(11,18,32,1) 100%)',
+                width: '100%',
+                padding: 8,
+                borderRadius: 4,
+                border: '1px solid #ef4444',
+                background: '#0f172a',
+                color: '#fff',
               }}
             />
-          )}
-        </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button
+                onClick={() => {
+                  onUpdateContent({ id: theory.id, content: contentDraft });
+                  setIsEditingContent(false);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  background: '#059669',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                Save Content
+              </button>
+              <button
+                onClick={() => {
+                  setContentDraft(theory.content);
+                  setIsEditingContent(false);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  background: '#111827',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              position: 'relative',
+              maxHeight: isExpanded ? 'none' : 140,
+              overflow: isExpanded ? 'auto' : 'hidden',
+              paddingRight: isExpanded ? 0 : 4,
+              background: 'rgba(15,23,42,0.6)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: 4,
+              padding: 8,
+            }}
+          >
+            <p
+              style={{
+                margin: 0,
+                color: '#fff',
+                fontSize: '14px',
+                lineHeight: 1.5,
+                whiteSpace: 'pre-wrap',
+              }}
+            >
+              {contentDraft}
+            </p>
+            {!isExpanded && contentDraft.length > 400 && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  height: 40,
+                  background: 'linear-gradient(to bottom, rgba(11,18,32,0) 0%, rgba(11,18,32,0.9) 60%, rgba(11,18,32,1) 100%)',
+                }}
+              />
+            )}
+          </div>
+        )}
         <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.7, color: '#fff' }}>
           By: {theory.createdBy?.name || theory.createdBy?.email || 'Unknown'} • {new Date(theory.createdAt).toLocaleDateString()}
         </p>
       </div>
 
-      <div style={{ marginTop: 10 }}>
-        <label style={{ display: 'block', marginBottom: 4, fontSize: '12px', color: '#ef4444' }}>
-          Title
-        </label>
-        <input
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="Add a title for this theory"
-          style={{
-            width: '100%',
-            padding: '6px 8px',
-            background: '#0b1220',
-            color: '#fff',
-            border: '1px solid #ef4444',
-            borderRadius: 4,
-            fontSize: '13px',
-          }}
-        />
-      </div>
+        <div style={{ marginTop: 10 }}>
+          <label style={{ display: 'block', marginBottom: 4, fontSize: '12px', color: '#ef4444' }}>
+            Title
+          </label>
+          <input
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Add a title for this theory"
+            style={{
+              width: '100%',
+              padding: '6px 8px',
+              background: '#0b1220',
+              color: '#fff',
+              border: '1px solid #ef4444',
+              borderRadius: 4,
+              fontSize: '13px',
+            }}
+          />
+        </div>
       
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
         <div>
@@ -822,6 +896,17 @@ function AdminPage() {
     },
   });
 
+  const updateContentMut = useMutation({
+    mutationFn: ({ id, content }: { id: string; content: string }) => updateTheoryContent(id, content),
+    onSuccess: () => {
+      refetchTheories();
+    },
+    onError: (error: any) => {
+      console.error('Failed to update content:', error);
+      alert('Failed to update content: ' + (error.message || 'Unknown error'));
+    },
+  });
+
   if (!isAuthenticated || !isAdmin) {
     return (
       <div className="landing-page">
@@ -1012,6 +1097,7 @@ function AdminPage() {
               onModerate={moderateTheoryMut.mutate}
               onCreateTag={createTagMut.mutate}
               onSplit={(payload) => splitTheoryMut.mutate(payload)}
+              onUpdateContent={({ id, content }) => updateContentMut.mutate({ id, content })}
               isModerating={moderateTheoryMut.isPending}
               isCreatingTag={createTagMut.isPending}
               isSplitting={splitTheoryMut.isPending}

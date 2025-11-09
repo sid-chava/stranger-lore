@@ -359,3 +359,10 @@ export async function splitTheory(
     body: JSON.stringify({ parts }),
   });
 }
+
+export async function updateTheoryContent(id: string, content: string) {
+  return apiRequest<{ theory: any }>(`/api/theories/${id}/content`, {
+    method: 'PATCH',
+    body: JSON.stringify({ content }),
+  });
+}
