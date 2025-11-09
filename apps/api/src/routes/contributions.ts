@@ -138,4 +138,28 @@ export async function contributionRoutes(fastify: FastifyInstance) {
       }
     }
   );
+
+  fastify.get(
+    '/api/contributions/stats',
+    async (_request, reply) => {
+      try {
+        const totalContributions = await prisma.contribution.count();
+        const contributors = await prisma.contribution.groupBy({
+          by: ['userId'],
+        });
+
+        return {
+          totalContributions,
+          totalContributors: contributors.length,
+        };
+      } catch (error: any) {
+        fastify.log.error(error);
+        return reply
+          .code(500)
+          .send({
+            error: { message: error?.message || 'Failed to load contribution stats' },
+          });
+      }
+    }
+  );
 }

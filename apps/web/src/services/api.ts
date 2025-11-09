@@ -330,6 +330,15 @@ export async function getContributionLeaderboard() {
   return apiRequest<ContributionLeaderboardResponse>('/api/contributions/leaderboard');
 }
 
+export type ContributionStatsResponse = {
+  totalContributions: number;
+  totalContributors: number;
+};
+
+export async function getContributionStats() {
+  return apiRequest<ContributionStatsResponse>('/api/contributions/stats');
+}
+
 export async function getIncompleteTheories() {
   return apiRequest<{ theories: any[] }>('/api/theories/incomplete');
 }

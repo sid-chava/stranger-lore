@@ -12,6 +12,8 @@ import {
   splitTheory,
 } from '../services/api';
 import './LandingPage.css';
+import AnimatedCounter from '../components/AnimatedCounter';
+import { useContributionStats } from '../hooks/useContributionStats';
 
 type TheoryModerationItemProps = {
   theory: any;
@@ -642,6 +644,8 @@ function AdminPage() {
     queryFn: () => getIncompleteTheories(),
     enabled: isAdmin,
   });
+  const { data: contributionStats } = useContributionStats();
+  const totalContributions = contributionStats?.totalContributions ?? 0;
 
   const theories = theoriesData?.theories ?? [];
   const tags = tagsData?.tags ?? [];
@@ -984,7 +988,9 @@ function AdminPage() {
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>
-            <p className="contributions-count">1,987 verified contributions</p>
+            <p className="contributions-count">
+              <AnimatedCounter value={totalContributions} /> verified contributions
+            </p>
             <p className="built-by">Built by Lore.</p>
           </div>
         </footer>

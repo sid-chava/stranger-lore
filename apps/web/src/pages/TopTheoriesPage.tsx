@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTopTheories, voteTheory } from '../services/api';
 import './LandingPage.css';
+import AnimatedCounter from '../components/AnimatedCounter';
+import { useContributionStats } from '../hooks/useContributionStats';
 
 
 function TheoryItem({ theory }: { theory: any }) {
@@ -188,6 +190,8 @@ function TopTheoriesPage() {
     queryKey: ['top-theories'],
     queryFn: () => getTopTheories(),
   });
+  const { data: contributionStats } = useContributionStats();
+  const totalContributions = contributionStats?.totalContributions ?? 0;
   const theories = data?.theories ?? [];
 
   return (
@@ -262,7 +266,9 @@ function TopTheoriesPage() {
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>
-            <p className="contributions-count">1,987 verified contributions</p>
+            <p className="contributions-count">
+              <AnimatedCounter value={totalContributions} /> verified contributions
+            </p>
             <p className="built-by">Built by Lore.</p>
           </div>
         </footer>

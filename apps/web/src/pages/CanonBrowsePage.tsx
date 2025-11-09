@@ -3,6 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getCanonFolders, listCanonFolderPages } from '../services/api';
 import './LandingPage.css';
+import AnimatedCounter from '../components/AnimatedCounter';
+import { useContributionStats } from '../hooks/useContributionStats';
 
 function FolderItem({ folder, isExpanded, onToggle }: { folder: any; isExpanded: boolean; onToggle: () => void }) {
   const { data, isLoading } = useQuery({
@@ -57,6 +59,8 @@ function CanonBrowsePage() {
   const { data } = useQuery({ queryKey: ['canon-folders'], queryFn: () => getCanonFolders() });
   const folders = data?.folders ?? [];
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+  const { data: contributionStats } = useContributionStats();
+  const totalContributions = contributionStats?.totalContributions ?? 0;
 
   const rootId = useMemo(() => folders.find((f: any) => f.slug === 'root')?.id as string | undefined, [folders]);
   const children = useMemo(() => {
@@ -137,7 +141,9 @@ function CanonBrowsePage() {
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>
-            <p className="contributions-count">1,987 verified contributions</p>
+            <p className="contributions-count">
+              <AnimatedCounter value={totalContributions} /> verified contributions
+            </p>
             <p className="built-by">Built by Lore.</p>
           </div>
         </footer>

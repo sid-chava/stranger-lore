@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { getContributionLeaderboard, type ContributionLeaderboardResponse } from '../services/api';
 import './LandingPage.css';
+import AnimatedCounter from '../components/AnimatedCounter';
 
 type LeaderboardSectionProps = {
   data?: ContributionLeaderboardResponse;
@@ -107,6 +108,7 @@ function ContributorLeaderboardPage() {
     queryKey: ['contribution-leaderboard'],
     queryFn: () => getContributionLeaderboard(),
   });
+  const totalContributions = leaderboardData?.totalContributions ?? 0;
 
   return (
     <div className="landing-page">
@@ -154,7 +156,9 @@ function ContributorLeaderboardPage() {
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>
-            <p className="contributions-count">1,987 verified contributions</p>
+            <p className="contributions-count">
+              <AnimatedCounter value={totalContributions} /> verified contributions
+            </p>
             <p className="built-by">Built by Lore.</p>
           </div>
         </footer>

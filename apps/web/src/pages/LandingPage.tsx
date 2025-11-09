@@ -4,6 +4,8 @@ import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import { createTheory } from '../services/api';
+import AnimatedCounter from '../components/AnimatedCounter';
+import { useContributionStats } from '../hooks/useContributionStats';
 
 function AuthButton() {
   const { isAuthenticated, isLoading, login, logout, user, roleIndicator } = useAuth();
@@ -60,6 +62,8 @@ function AuthButton() {
 function LandingPage() {
   const { isAuthenticated, needsUsername } = useAuth();
   const [theoryContent, setTheoryContent] = useState('');
+  const { data: contributionStats } = useContributionStats();
+  const totalContributions = contributionStats?.totalContributions ?? 0;
 
   const submitTheory = useMutation({
     mutationFn: (content: string) => createTheory(content),
@@ -212,7 +216,9 @@ function LandingPage() {
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>
-            <p className="contributions-count">1,987 verified contributions</p>
+            <p className="contributions-count">
+              <AnimatedCounter value={totalContributions} /> verified contributions
+            </p>
             <p className="built-by">Built by Lore.</p>
           </div>
         </footer>
