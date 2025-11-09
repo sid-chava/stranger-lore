@@ -34,14 +34,38 @@ const TheoryCreateSchema = z.object({
   content: z.string().min(1).max(5000),
 });
 
+const TitleSchema = z
+  .string()
+  .trim()
+  .min(3, 'Title must be at least 3 characters')
+  .max(140, 'Title must be at most 140 characters');
+
 const TheoryModerateSchema = z.object({
   status: z.enum(['approved', 'denied']),
+  title: TitleSchema.optional(),
   tagIds: z.array(z.string().uuid()).optional(),
   denialReason: z.string().max(500).optional(),
 });
 
 const TheoryVoteSchema = z.object({
   value: z.enum(['1', '-1']).transform((val) => parseInt(val)),
+});
+
+const TheorySplitSchema = z.object({
+  parts: z
+    .array(
+      z.object({
+        title: TitleSchema,
+        content: z.string().min(1).max(5000),
+        tagIds: z.array(z.string().uuid()).optional(),
+      })
+    )
+    .min(2, 'Provide at least two parts to split'),
+});
+
+const TheoryTitleUpdateSchema = z.object({
+  title: TitleSchema,
+  tagIds: z.array(z.string().uuid()).optional(),
 });
 
 export async function theoryRoutes(fastify: FastifyInstance) {
@@ -119,6 +143,35 @@ export async function theoryRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Get approved theories missing titles
+  fastify.get(
+    '/api/theories/incomplete',
+    { preHandler: [authenticateUser, requireAdmin] },
+    async (_request, reply) => {
+      try {
+        const theories = await prisma.theory.findMany({
+          where: { status: 'approved', title: null },
+          include: {
+            createdBy: {
+              select: { id: true, email: true, name: true, username: true },
+            },
+            tags: {
+              include: { tag: true },
+            },
+          },
+          orderBy: { moderatedAt: 'desc' },
+        });
+
+        return { theories };
+      } catch (error: any) {
+        fastify.log.error(error);
+        return reply
+          .code(500)
+          .send({ error: { message: error?.message || 'Failed to fetch incomplete theories' } });
+      }
+    }
+  );
+
   // Moderate theory (approve/deny with tags) - admin only
   fastify.post(
     '/api/theories/:id/moderate',
@@ -133,6 +186,11 @@ export async function theoryRoutes(fastify: FastifyInstance) {
         const parsed = TheoryModerateSchema.safeParse(request.body);
         if (!parsed.success) {
           return reply.code(400).send({ error: parsed.error.errors });
+        }
+
+        const normalizedTitle = parsed.data.title?.trim();
+        if (parsed.data.status === 'approved' && !normalizedTitle) {
+          return reply.code(400).send({ error: 'Title required to approve a theory' });
         }
 
         const moderator = await prisma.user.findUnique({
@@ -160,6 +218,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
             where: { id },
             data: {
               status: parsed.data.status,
+              title: normalizedTitle ?? theory.title ?? null,
               moderatedById: moderator.id,
               moderatedAt: new Date(),
               denialReason: parsed.data.denialReason || null,
@@ -217,6 +276,113 @@ export async function theoryRoutes(fastify: FastifyInstance) {
     }
   );
 
+  // Split a pending theory into multiple pending parts
+  fastify.post(
+    '/api/theories/:id/split',
+    { preHandler: [authenticateUser, requireAdmin] },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const parsed = TheorySplitSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.code(400).send({ error: parsed.error.errors });
+        }
+
+        const original = await prisma.theory.findUnique({
+          where: { id },
+        });
+
+        if (!original) {
+          return reply.code(404).send({ error: 'Theory not found' });
+        }
+
+        if (original.status !== 'pending') {
+          return reply.code(400).send({ error: 'Only pending theories can be split' });
+        }
+
+        const newTheories = await prisma.$transaction(async (tx) => {
+          await tx.theoryTag.deleteMany({ where: { theoryId: id } });
+          await tx.theory.delete({ where: { id } });
+
+          const created = [];
+          for (const part of parsed.data.parts) {
+            const theory = await tx.theory.create({
+              data: {
+                title: part.title.trim(),
+                content: part.content,
+                status: 'pending',
+                createdById: original.createdById,
+              },
+            });
+
+            if (part.tagIds && part.tagIds.length > 0) {
+              await tx.theoryTag.createMany({
+                data: part.tagIds.map((tagId) => ({
+                  theoryId: theory.id,
+                  tagId,
+                })),
+              });
+            }
+
+            created.push(theory);
+          }
+          return created;
+        });
+
+        return { theories: newTheories };
+      } catch (error: any) {
+        fastify.log.error(error);
+        return reply.code(500).send({ error: { message: error?.message || 'Failed to split theory' } });
+      }
+    }
+  );
+
+  // Update/set theory title (admin)
+  fastify.post(
+    '/api/theories/:id/title',
+    { preHandler: [authenticateUser, requireAdmin] },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        const parsed = TheoryTitleUpdateSchema.safeParse(request.body);
+        if (!parsed.success) {
+          return reply.code(400).send({ error: parsed.error.errors });
+        }
+
+        const theory = await prisma.theory.findUnique({ where: { id } });
+        if (!theory) {
+          return reply.code(404).send({ error: 'Theory not found' });
+        }
+
+        const updated = await prisma.$transaction(async (tx) => {
+          const t = await tx.theory.update({
+            where: { id },
+            data: { title: parsed.data.title.trim() },
+          });
+
+          if (parsed.data.tagIds) {
+            await tx.theoryTag.deleteMany({ where: { theoryId: id } });
+            if (parsed.data.tagIds.length > 0) {
+              await tx.theoryTag.createMany({
+                data: parsed.data.tagIds.map((tagId) => ({
+                  theoryId: id,
+                  tagId,
+                })),
+              });
+            }
+          }
+
+          return t;
+        });
+
+        return { theory: updated };
+      } catch (error: any) {
+        fastify.log.error(error);
+        return reply.code(500).send({ error: { message: error?.message || 'Failed to update title' } });
+      }
+    }
+  );
+
   // Get all tags (for admin tag selector)
   fastify.get(
     '/api/tags',
@@ -268,7 +434,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
       try {
         // Get all approved theories with vote counts
         const theories = await prisma.theory.findMany({
-          where: { status: 'approved' },
+          where: { status: 'approved', title: { not: null } },
           include: {
             createdBy: {
               select: { id: true, email: true, name: true, username: true },
@@ -305,6 +471,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
 
           return {
             id: theory.id,
+            title: theory.title,
             content: theory.content,
             score,
             upvotes,

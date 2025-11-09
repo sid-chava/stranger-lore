@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
@@ -10,21 +10,52 @@ import {
   moderateTheory,
   getTags,
   createTag,
+  getIncompleteTheories,
+  updateTheoryTitle,
+  splitTheory,
 } from '../services/api';
 import './LandingPage.css';
 
-function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerating, isCreatingTag }: {
+type TheoryModerationItemProps = {
   theory: any;
   tags: any[];
-  onModerate: (data: { id: string; status: 'approved' | 'denied'; tagIds?: string[]; denialReason?: string }) => void;
+  onModerate: (data: {
+    id: string;
+    status: 'approved' | 'denied';
+    title?: string;
+    tagIds?: string[];
+    denialReason?: string;
+  }) => void;
   onCreateTag: (name: string) => void;
+  onSplit: (data: { id: string; parts: { title: string; content: string; tagIds?: string[] }[] }) => void;
   isModerating: boolean;
   isCreatingTag: boolean;
-}) {
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  isSplitting: boolean;
+};
+
+function TheoryModerationItem({
+  theory,
+  tags,
+  onModerate,
+  onCreateTag,
+  onSplit,
+  isModerating,
+  isCreatingTag,
+  isSplitting,
+}: TheoryModerationItemProps) {
+  const [selectedTags, setSelectedTags] = useState<string[]>(
+    theory.tags?.map((t: any) => t.tag.id) ?? []
+  );
+  const [title, setTitle] = useState(theory.title || '');
   const [newTagName, setNewTagName] = useState('');
   const [denialReason, setDenialReason] = useState('');
   const [showDenialInput, setShowDenialInput] = useState(false);
+  const [showSplitModal, setShowSplitModal] = useState(false);
+
+  useEffect(() => {
+    setSelectedTags(theory.tags?.map((t: any) => t.tag.id) ?? []);
+    setTitle(theory.title || '');
+  }, [theory.id, theory.title, theory.tags]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
@@ -39,8 +70,17 @@ function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerat
   };
 
   const handleApprove = () => {
-    // Tags are optional for approval - admin can approve without tags if needed
-    onModerate({ id: theory.id, status: 'approved', tagIds: selectedTags.length > 0 ? selectedTags : undefined });
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      alert('Title is required before approving');
+      return;
+    }
+    onModerate({
+      id: theory.id,
+      status: 'approved',
+      title: trimmedTitle,
+      tagIds: selectedTags.length > 0 ? selectedTags : undefined,
+    });
     setSelectedTags([]);
   };
 
@@ -57,10 +97,30 @@ function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerat
   return (
     <div style={{ border: '1px solid #ef4444', padding: 12, borderRadius: 4, background: 'rgba(0,0,0,0.2)' }}>
       <div style={{ marginBottom: 8 }}>
-        <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: 1.5 }}>{theory.content}</p>
+        <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{theory.content}</p>
         <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.7, color: '#fff' }}>
           By: {theory.createdBy?.name || theory.createdBy?.email || 'Unknown'} • {new Date(theory.createdAt).toLocaleDateString()}
         </p>
+      </div>
+
+      <div style={{ marginTop: 10 }}>
+        <label style={{ display: 'block', marginBottom: 4, fontSize: '12px', color: '#ef4444' }}>
+          Title
+        </label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Add a title for this theory"
+          style={{
+            width: '100%',
+            padding: '6px 8px',
+            background: '#0b1220',
+            color: '#fff',
+            border: '1px solid #ef4444',
+            borderRadius: 4,
+            fontSize: '13px',
+          }}
+        />
       </div>
       
       <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -120,7 +180,7 @@ function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerat
           </div>
         )}
 
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
           <button
             onClick={handleApprove}
             disabled={isModerating}
@@ -152,8 +212,366 @@ function TheoryModerationItem({ theory, tags, onModerate, onCreateTag, isModerat
               Cancel
             </button>
           )}
+          <button
+            onClick={() => setShowSplitModal(true)}
+            disabled={isSplitting}
+            style={{
+              padding: '6px 12px',
+              background: '#1d4ed8',
+              color: '#fff',
+              border: '1px solid #ef4444',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: '12px',
+            }}
+          >
+            {isSplitting ? 'Splitting...' : 'Split into parts'}
+          </button>
         </div>
       </div>
+
+      {showSplitModal && (
+        <SplitTheoryModal
+          theory={theory}
+          tags={tags}
+          isSubmitting={isSplitting}
+          onClose={() => setShowSplitModal(false)}
+          onSubmit={(parts) => {
+            onSplit({ id: theory.id, parts });
+            setShowSplitModal(false);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type SplitTheoryModalProps = {
+  theory: any;
+  tags: any[];
+  isSubmitting: boolean;
+  onClose: () => void;
+  onSubmit: (parts: { title: string; content: string; tagIds?: string[] }[]) => void;
+};
+
+function SplitTheoryModal({ theory, tags, isSubmitting, onClose, onSubmit }: SplitTheoryModalProps) {
+  const [parts, setParts] = useState<{ title: string; content: string; tagIds: string[] }[]>(() => [
+    {
+      title: theory.title || '',
+      content: theory.content,
+      tagIds: [],
+    },
+  ]);
+
+  const updatePart = (index: number, field: 'title' | 'content', value: string) => {
+    setParts((prev) =>
+      prev.map((part, i) => (i === index ? { ...part, [field]: value } : part))
+    );
+  };
+
+  const togglePartTag = (index: number, tagId: string) => {
+    setParts((prev) =>
+      prev.map((part, i) => {
+        if (i !== index) return part;
+        const exists = part.tagIds.includes(tagId);
+        return {
+          ...part,
+          tagIds: exists ? part.tagIds.filter((id) => id !== tagId) : [...part.tagIds, tagId],
+        };
+      })
+    );
+  };
+
+  const addPart = () => {
+    setParts((prev) => [
+      ...prev,
+      {
+        title: '',
+        content: '',
+        tagIds: [],
+      },
+    ]);
+  };
+
+  const removePart = (index: number) => {
+    if (parts.length <= 1) return;
+    setParts((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const handleSubmit = () => {
+    const normalized = parts.map((part) => ({
+      ...part,
+      title: part.title.trim(),
+      content: part.content.trim(),
+    }));
+
+    if (normalized.some((part) => !part.title || !part.content)) {
+      alert('All parts need a title and content');
+      return;
+    }
+
+    onSubmit(normalized);
+  };
+
+  return (
+    <div
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0,0,0,0.85)',
+        zIndex: 1200,
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: 20,
+      }}
+    >
+      <div
+        style={{
+          width: '90%',
+          maxWidth: 900,
+          maxHeight: '90vh',
+          overflowY: 'auto',
+          background: '#0b1220',
+          border: '1px solid #ef4444',
+          borderRadius: 8,
+          padding: 20,
+          color: '#fff',
+        }}
+      >
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, color: '#ef4444' }}>Split Theory</h3>
+          <button
+            onClick={onClose}
+            style={{
+              border: 'none',
+              background: 'transparent',
+              color: '#fff',
+              fontSize: 18,
+              cursor: 'pointer',
+            }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <p style={{ fontSize: 13, opacity: 0.8, marginBottom: 16 }}>
+          Break this submission into multiple theories. Each part needs its own title, content, and optional tags.
+        </p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {parts.map((part, index) => (
+            <div
+              key={index}
+              style={{
+                border: '1px solid rgba(239, 68, 68, 0.5)',
+                borderRadius: 6,
+                padding: 12,
+                background: '#111827',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h4 style={{ margin: 0, color: '#f87171' }}>Part {index + 1}</h4>
+                {parts.length > 1 && (
+                  <button
+                    onClick={() => removePart(index)}
+                    style={{
+                      border: 'none',
+                      background: 'transparent',
+                      color: '#f87171',
+                      cursor: 'pointer',
+                      fontSize: 12,
+                    }}
+                  >
+                    Remove
+                  </button>
+                )}
+              </div>
+
+              <label style={{ display: 'block', marginTop: 8, fontSize: 12, color: '#f87171' }}>
+                Title
+              </label>
+              <input
+                value={part.title}
+                onChange={(e) => updatePart(index, 'title', e.target.value)}
+                placeholder="Title"
+                style={{
+                  width: '100%',
+                  padding: '6px 8px',
+                  background: '#0b1220',
+                  color: '#fff',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  fontSize: 13,
+                }}
+              />
+
+              <label style={{ display: 'block', marginTop: 12, fontSize: 12, color: '#f87171' }}>
+                Content
+              </label>
+              <textarea
+                value={part.content}
+                onChange={(e) => updatePart(index, 'content', e.target.value)}
+                rows={4}
+                placeholder="Theory text"
+                style={{
+                  width: '100%',
+                  padding: 8,
+                  background: '#0b1220',
+                  color: '#fff',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  resize: 'vertical',
+                }}
+              />
+
+              <div style={{ marginTop: 10 }}>
+                <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#f87171' }}>
+                  Tags (optional)
+                </label>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                  {tags.map((tag: any) => {
+                    const selected = part.tagIds.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        onClick={() => togglePartTag(index, tag.id)}
+                        type="button"
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: 4,
+                          border: '1px solid #ef4444',
+                          background: selected ? '#047857' : '#111827',
+                          color: '#fff',
+                          cursor: 'pointer',
+                          fontSize: 12,
+                        }}
+                      >
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                  {tags.length === 0 && (
+                    <span style={{ fontSize: 12, opacity: 0.7 }}>No tags available</span>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 16 }}>
+          <button
+            onClick={addPart}
+            style={{
+              padding: '8px 12px',
+              border: '1px dashed #ef4444',
+              background: 'transparent',
+              color: '#fff',
+              borderRadius: 4,
+              cursor: 'pointer',
+              fontSize: 13,
+            }}
+          >
+            + Add part
+          </button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onClose}
+              style={{
+                padding: '8px 12px',
+                border: '1px solid #ef4444',
+                background: 'transparent',
+                color: '#fff',
+                borderRadius: 4,
+                cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+              style={{
+                padding: '8px 16px',
+                background: '#ef4444',
+                color: '#fff',
+                border: 'none',
+                borderRadius: 4,
+                cursor: 'pointer',
+              }}
+            >
+              {isSubmitting ? 'Splitting...' : 'Split'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+type IncompleteTheoryItemProps = {
+  theory: any;
+  onSave: (data: { id: string; title: string }) => void;
+  isSaving: boolean;
+};
+
+function IncompleteTheoryItem({ theory, onSave, isSaving }: IncompleteTheoryItemProps) {
+  const [title, setTitle] = useState(theory.title || '');
+
+  useEffect(() => {
+    setTitle(theory.title || '');
+  }, [theory.id, theory.title]);
+
+  const handleSave = () => {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      alert('Title cannot be empty');
+      return;
+    }
+    onSave({ id: theory.id, title: trimmed });
+  };
+
+  return (
+    <div style={{ border: '1px solid #ef4444', borderRadius: 6, padding: 12, background: 'rgba(0,0,0,0.35)' }}>
+      <p style={{ margin: 0, fontSize: 13, color: '#fff', whiteSpace: 'pre-wrap' }}>{theory.content}</p>
+      <p style={{ margin: '4px 0 0 0', fontSize: 11, opacity: 0.7 }}>
+        Approved {theory.moderatedAt ? new Date(theory.moderatedAt).toLocaleDateString() : ''}
+      </p>
+
+      <div style={{ marginTop: 10 }}>
+        <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#f87171' }}>Title</label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder="Add a title"
+          style={{
+            width: '100%',
+            padding: '6px 8px',
+            borderRadius: 4,
+            border: '1px solid #ef4444',
+            background: '#0b1220',
+            color: '#fff',
+          }}
+        />
+      </div>
+
+      <button
+        onClick={handleSave}
+        disabled={isSaving}
+        style={{
+          marginTop: 10,
+          padding: '6px 12px',
+          borderRadius: 4,
+          border: 'none',
+          background: '#059669',
+          color: '#fff',
+          cursor: 'pointer',
+          fontSize: 12,
+        }}
+      >
+        {isSaving ? 'Saving...' : 'Save title'}
+      </button>
     </div>
   );
 }
@@ -180,9 +598,16 @@ function AdminPage() {
     enabled: isAdmin,
   });
 
+  const { data: incompleteData, refetch: refetchIncomplete } = useQuery({
+    queryKey: ['incomplete-theories'],
+    queryFn: () => getIncompleteTheories(),
+    enabled: isAdmin,
+  });
+
   const folders = foldersData?.folders ?? [];
   const theories = theoriesData?.theories ?? [];
   const tags = tagsData?.tags ?? [];
+  const incompleteTheories = incompleteData?.theories ?? [];
 
   // Commented out for now - folder/page creation disabled
   // const [folderName, setFolderName] = useState('');
@@ -233,8 +658,19 @@ function AdminPage() {
   // };
 
   const moderateTheoryMut = useMutation({
-    mutationFn: ({ id, status, tagIds, denialReason }: { id: string; status: 'approved' | 'denied'; tagIds?: string[]; denialReason?: string }) =>
-      moderateTheory(id, { status, tagIds, denialReason }),
+    mutationFn: ({
+      id,
+      status,
+      title,
+      tagIds,
+      denialReason,
+    }: {
+      id: string;
+      status: 'approved' | 'denied';
+      title?: string;
+      tagIds?: string[];
+      denialReason?: string;
+    }) => moderateTheory(id, { status, title, tagIds, denialReason }),
     onSuccess: () => {
       refetchTheories();
       qc.invalidateQueries({ queryKey: ['tags'] });
@@ -249,6 +685,29 @@ function AdminPage() {
     mutationFn: (name: string) => createTag(name),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['tags'] });
+    },
+  });
+
+  const splitTheoryMut = useMutation({
+    mutationFn: ({ id, parts }: { id: string; parts: { title: string; content: string; tagIds?: string[] }[] }) =>
+      splitTheory(id, parts),
+    onSuccess: () => {
+      refetchTheories();
+    },
+    onError: (error: any) => {
+      console.error('Failed to split theory:', error);
+      alert('Failed to split theory: ' + (error.message || 'Unknown error'));
+    },
+  });
+
+  const updateTitleMut = useMutation({
+    mutationFn: ({ id, title }: { id: string; title: string }) => updateTheoryTitle(id, { title }),
+    onSuccess: () => {
+      refetchIncomplete();
+    },
+    onError: (error: any) => {
+      console.error('Failed to update title:', error);
+      alert('Failed to update title: ' + (error.message || 'Unknown error'));
     },
   });
 
@@ -396,6 +855,29 @@ function AdminPage() {
         </div>
       </div> */}
 
+      {/* Needs Title section */}
+      <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
+        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Approved Theories Missing Titles</h3>
+        <p style={{ fontSize: 12, opacity: 0.8, marginBottom: 16 }}>
+          These theories are hidden from the public list until a title is added.
+        </p>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {incompleteTheories.map((theory: any) => (
+            <IncompleteTheoryItem
+              key={theory.id}
+              theory={theory}
+              onSave={({ id, title }) => updateTitleMut.mutate({ id, title })}
+              isSaving={updateTitleMut.isPending}
+            />
+          ))}
+          {incompleteTheories.length === 0 && (
+            <div style={{ opacity: 0.7, textAlign: 'center', padding: 20 }}>
+              All approved theories have titles. Nice work!
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* Theory Moderation */}
       <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
         <h3 style={{ marginTop: 0, color: '#ef4444' }}>Moderate Theories</h3>
@@ -407,8 +889,10 @@ function AdminPage() {
               tags={tags}
               onModerate={moderateTheoryMut.mutate}
               onCreateTag={createTagMut.mutate}
+              onSplit={(payload) => splitTheoryMut.mutate(payload)}
               isModerating={moderateTheoryMut.isPending}
               isCreatingTag={createTagMut.isPending}
+              isSplitting={splitTheoryMut.isPending}
             />
           ))}
           {theories.length === 0 && (
@@ -474,4 +958,3 @@ function AdminPage() {
 }
 
 export default AdminPage;
-

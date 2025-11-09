@@ -259,6 +259,7 @@ export async function getUnmoderatedTheories() {
 
 export async function moderateTheory(id: string, input: {
   status: 'approved' | 'denied';
+  title?: string;
   tagIds?: string[];
   denialReason?: string;
 }) {
@@ -327,4 +328,25 @@ export type ContributionLeaderboardResponse = {
 
 export async function getContributionLeaderboard() {
   return apiRequest<ContributionLeaderboardResponse>('/api/contributions/leaderboard');
+}
+
+export async function getIncompleteTheories() {
+  return apiRequest<{ theories: any[] }>('/api/theories/incomplete');
+}
+
+export async function updateTheoryTitle(id: string, input: { title: string; tagIds?: string[] }) {
+  return apiRequest<{ theory: any }>(`/api/theories/${id}/title`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function splitTheory(
+  id: string,
+  parts: { title: string; content: string; tagIds?: string[] }[]
+) {
+  return apiRequest<{ theories: any[] }>(`/api/theories/${id}/split`, {
+    method: 'POST',
+    body: JSON.stringify({ parts }),
+  });
 }

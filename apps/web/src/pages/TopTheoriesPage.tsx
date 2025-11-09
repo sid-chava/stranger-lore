@@ -253,6 +253,9 @@ function TheoryItem({ theory }: { theory: any }) {
 
       {/* Content section */}
       <div style={{ flex: 1 }}>
+        {theory.title && (
+          <h3 style={{ margin: '0 0 6px 0', color: '#f87171', fontSize: '16px' }}>{theory.title}</h3>
+        )}
         <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: 1.6 }}>
           {theory.content}
         </p>

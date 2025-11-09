@@ -132,6 +132,7 @@ model NavigationConfig {
 
 model Theory {
   id          String   @id @default(uuid())
+  title       String?
   content     String   // The theory text submitted by user
   status      String   @default("pending") // pending, approved, denied
   createdAt   DateTime @default(now()) @map("created_at")
