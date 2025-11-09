@@ -14,6 +14,8 @@ import {
 import './LandingPage.css';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useContributionStats } from '../hooks/useContributionStats';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type TheoryModerationItemProps = {
   theory: any;
@@ -51,6 +53,7 @@ function TheoryModerationItem({
   const [showDenialInput, setShowDenialInput] = useState(false);
   const [showSplitModal, setShowSplitModal] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
+  const [showPreview, setShowPreview] = useState(false);
 
   useEffect(() => {
     setSelectedTags(theory.tags?.map((t: any) => t.tag.id) ?? []);
@@ -98,12 +101,44 @@ function TheoryModerationItem({
   return (
     <div style={{ border: '1px solid #ef4444', padding: 12, borderRadius: 4, background: 'rgba(0,0,0,0.2)' }}>
       <div style={{ marginBottom: 8 }}>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
+          <button
+            onClick={() => setIsExpanded((prev) => !prev)}
+            style={{
+              border: 'none',
+              background: 'none',
+              color: '#60a5fa',
+              cursor: 'pointer',
+              fontSize: 12,
+              padding: 0,
+            }}
+          >
+            {isExpanded ? 'Collapse Text' : 'Expand Text'}
+          </button>
+          <button
+            onClick={() => setShowPreview(true)}
+            style={{
+              border: 'none',
+              background: 'none',
+              color: '#fbbf24',
+              cursor: 'pointer',
+              fontSize: 12,
+              padding: 0,
+            }}
+          >
+            Preview Markdown
+          </button>
+        </div>
         <div
           style={{
             position: 'relative',
             maxHeight: isExpanded ? 'none' : 140,
             overflow: isExpanded ? 'auto' : 'hidden',
             paddingRight: isExpanded ? 0 : 4,
+            background: 'rgba(15,23,42,0.6)',
+            border: '1px solid rgba(239,68,68,0.3)',
+            borderRadius: 4,
+            padding: 8,
           }}
         >
           <p
@@ -130,20 +165,6 @@ function TheoryModerationItem({
             />
           )}
         </div>
-        <button
-          onClick={() => setIsExpanded((prev) => !prev)}
-          style={{
-            border: 'none',
-            background: 'none',
-            color: '#60a5fa',
-            cursor: 'pointer',
-            fontSize: 12,
-            marginTop: 6,
-            padding: 0,
-          }}
-        >
-          {isExpanded ? 'Collapse' : 'Expand'}
-        </button>
         <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.7, color: '#fff' }}>
           By: {theory.createdBy?.name || theory.createdBy?.email || 'Unknown'} • {new Date(theory.createdAt).toLocaleDateString()}
         </p>
@@ -287,6 +308,54 @@ function TheoryModerationItem({
             setShowSplitModal(false);
           }}
         />
+      )}
+
+      {showPreview && (
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.9)',
+            zIndex: 1300,
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            padding: 20,
+          }}
+        >
+          <div
+            style={{
+              width: '90%',
+              maxWidth: 800,
+              maxHeight: '80vh',
+              overflowY: 'auto',
+              background: '#0b1220',
+              border: '1px solid #ef4444',
+              borderRadius: 8,
+              padding: 24,
+              color: '#fff',
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h3 style={{ margin: 0, color: '#f87171' }}>Markdown preview</h3>
+              <button
+                onClick={() => setShowPreview(false)}
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  color: '#fff',
+                  fontSize: 18,
+                  cursor: 'pointer',
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            <div style={{ fontSize: 14, lineHeight: 1.6 }}>
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{theory.content}</ReactMarkdown>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

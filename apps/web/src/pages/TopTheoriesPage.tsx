@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTopTheories, voteTheory } from '../services/api';
 import './LandingPage.css';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useContributionStats } from '../hooks/useContributionStats';
 
@@ -150,9 +152,9 @@ function TheoryItem({ theory }: { theory: any }) {
         {theory.title && (
           <h3 style={{ margin: '0 0 6px 0', color: '#f87171', fontSize: '16px' }}>{theory.title}</h3>
         )}
-        <p style={{ margin: 0, color: '#fff', fontSize: '14px', lineHeight: 1.6 }}>
-          {theory.content}
-        </p>
+        <div style={{ color: '#fff', fontSize: '14px', lineHeight: 1.6 }}>
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>{theory.content}</ReactMarkdown>
+        </div>
         <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12px', color: '#ef4444', opacity: 0.8 }}>
             {theory.createdBy?.username || theory.createdBy?.name || theory.createdBy?.email || 'Unknown'}
