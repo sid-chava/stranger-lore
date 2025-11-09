@@ -119,8 +119,65 @@ function TheoryItem({ theory }: { theory: any }) {
 
   const voteMut = useMutation({
     mutationFn: (value: 1 | -1) => voteTheory(theory.id, value),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['top-theories'] });
+    onMutate: async (value: 1 | -1) => {
+      await qc.cancelQueries({ queryKey: ['top-theories'] });
+      const previous = qc.getQueryData<{ theories: any[] }>(['top-theories']);
+
+      qc.setQueryData<{ theories: any[] } | undefined>(['top-theories'], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          theories: old.theories.map((t) => {
+            if (t.id !== theory.id) return t;
+            const prevVote = t.userVote as -1 | 0 | 1 | null;
+            if (prevVote === value) {
+              return t;
+            }
+            let upvotes = t.upvotes ?? 0;
+            let downvotes = t.downvotes ?? 0;
+
+            if (prevVote === 1) upvotes = Math.max(0, upvotes - 1);
+            if (prevVote === -1) downvotes = Math.max(0, downvotes - 1);
+
+            if (value === 1) upvotes += 1;
+            if (value === -1) downvotes += 1;
+
+            return {
+              ...t,
+              userVote: value,
+              upvotes,
+              downvotes,
+              score: upvotes - downvotes,
+            };
+          }),
+        };
+      });
+
+      return { previous };
+    },
+    onError: (_err, _value, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['top-theories'], context.previous);
+      }
+    },
+    onSuccess: (data) => {
+      qc.setQueryData<{ theories: any[] } | undefined>(['top-theories'], (old) => {
+        if (!old) return old;
+        return {
+          ...old,
+          theories: old.theories.map((t) =>
+            t.id === theory.id
+              ? {
+                  ...t,
+                  userVote: data.userVote,
+                  upvotes: data.upvotes,
+                  downvotes: data.downvotes,
+                  score: data.score,
+                }
+              : t
+          ),
+        };
+      });
     },
   });
 
