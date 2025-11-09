@@ -1,11 +1,120 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
-import { getTopTheories, voteTheory } from '../services/api';
+import {
+  getTopTheories,
+  voteTheory,
+  getContributionLeaderboard,
+  type ContributionLeaderboardResponse,
+} from '../services/api';
 import './LandingPage.css';
 
+type LeaderboardSectionProps = {
+  data?: ContributionLeaderboardResponse;
+  isLoading: boolean;
+  error: unknown;
+};
+
+function ContributionLeaderboardSection({ data, isLoading, error }: LeaderboardSectionProps) {
+  const entries = data?.leaderboard ?? [];
+  const currentUser = data?.currentUser;
+  const hasError = Boolean(error);
+
+  const formatName = (entry: { username?: string | null; name?: string | null; email?: string | null }) =>
+    entry.username || entry.name || entry.email || 'Unknown';
+
+  return (
+    <div style={{ marginTop: 40 }}>
+      <div style={{ marginBottom: 16 }}>
+        <h2 style={{ color: '#ef4444', margin: 0, fontSize: '28px' }}>Contributor Leaderboard</h2>
+        <p style={{ color: '#fff', opacity: 0.75, marginTop: 6 }}>
+          Tracking approved theories and votes. Total contributions logged: {data?.totalContributions ?? 0}
+        </p>
+      </div>
+
+      {isLoading && (
+        <div style={{ color: '#fff', padding: 20, textAlign: 'center' }}>Loading leaderboard...</div>
+      )}
+
+      {hasError && !isLoading && (
+        <div style={{ color: '#f87171', padding: 20, textAlign: 'center' }}>
+          Failed to load leaderboard. Please refresh.
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <>
+          <div style={{ background: 'rgba(0,0,0,0.35)', border: '1px solid #ef4444', borderRadius: 6, overflowX: 'auto' }}>
+            {entries.length === 0 ? (
+              <div style={{ color: '#fff', opacity: 0.7, padding: 24, textAlign: 'center' }}>
+                No contributions yet. Be the first to submit or vote!
+              </div>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 14 }}>
+                <thead>
+                  <tr style={{ background: 'rgba(239,68,68,0.2)', color: '#fff' }}>
+                    <th style={{ textAlign: 'left', padding: '12px 16px' }}>Rank</th>
+                    <th style={{ textAlign: 'left', padding: '12px 16px' }}>User</th>
+                    <th style={{ textAlign: 'left', padding: '12px 16px' }}>Contributions</th>
+                    <th style={{ textAlign: 'left', padding: '12px 16px' }}>Approved Posts</th>
+                    <th style={{ textAlign: 'left', padding: '12px 16px' }}>Votes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {entries.map((entry) => {
+                    const isCurrentUser =
+                      currentUser?.userId === entry.userId && (currentUser?.rank ?? entry.rank) === entry.rank;
+                    return (
+                      <tr
+                        key={entry.userId}
+                        style={{
+                          borderBottom: '1px solid rgba(239, 68, 68, 0.2)',
+                          background: isCurrentUser ? 'rgba(239,68,68,0.15)' : 'transparent',
+                          color: '#fff',
+                        }}
+                      >
+                        <td style={{ padding: '12px 16px' }}>#{entry.rank}</td>
+                        <td style={{ padding: '12px 16px' }}>{formatName(entry)}</td>
+                        <td style={{ padding: '12px 16px' }}>{entry.contributions}</td>
+                        <td style={{ padding: '12px 16px' }}>{entry.approvals}</td>
+                        <td style={{ padding: '12px 16px' }}>{entry.votes}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {currentUser && (
+            <div
+              style={{
+                marginTop: 20,
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+                padding: 16,
+                border: '1px dashed #f87171',
+                borderRadius: 6,
+                background: 'rgba(0,0,0,0.4)',
+                color: '#fff',
+              }}
+            >
+              <strong style={{ color: '#f87171' }}>Your stats</strong>
+              <span>Rank: {currentUser.rank ? `#${currentUser.rank}` : 'Not ranked yet'}</span>
+              <span>Total contributions: {currentUser.contributions}</span>
+              <span>Approved posts: {currentUser.approvals}</span>
+              <span>Votes cast: {currentUser.votes}</span>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
+
 function TheoryItem({ theory }: { theory: any }) {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, needsUsername } = useAuth();
   const qc = useQueryClient();
 
   const voteMut = useMutation({
@@ -20,6 +129,10 @@ function TheoryItem({ theory }: { theory: any }) {
       alert('Please log in to vote');
       return;
     }
+    if (needsUsername) {
+      alert('Please pick a username before voting');
+      return;
+    }
     voteMut.mutate(value);
   };
 
@@ -32,18 +145,24 @@ function TheoryItem({ theory }: { theory: any }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 40 }}>
         <button
           onClick={() => handleVote(1)}
-          disabled={voteMut.isPending || !isAuthenticated}
+          disabled={voteMut.isPending || !isAuthenticated || needsUsername}
           style={{
             background: userVote === 1 ? '#059669' : 'transparent',
             border: '1px solid #ef4444',
             borderRadius: 4,
             color: '#fff',
-            cursor: isAuthenticated ? 'pointer' : 'not-allowed',
+            cursor: isAuthenticated && !needsUsername ? 'pointer' : 'not-allowed',
             padding: '4px 8px',
             fontSize: '14px',
-            opacity: !isAuthenticated ? 0.5 : 1,
+            opacity: !isAuthenticated || needsUsername ? 0.5 : 1,
           }}
-          title={isAuthenticated ? 'Upvote' : 'Log in to vote'}
+          title={
+            !isAuthenticated
+              ? 'Log in to vote'
+              : needsUsername
+              ? 'Choose a username to vote'
+              : 'Upvote'
+          }
         >
           ▲
         </button>
@@ -52,18 +171,24 @@ function TheoryItem({ theory }: { theory: any }) {
         </span>
         <button
           onClick={() => handleVote(-1)}
-          disabled={voteMut.isPending || !isAuthenticated}
+          disabled={voteMut.isPending || !isAuthenticated || needsUsername}
           style={{
             background: userVote === -1 ? '#dc2626' : 'transparent',
             border: '1px solid #ef4444',
             borderRadius: 4,
             color: '#fff',
-            cursor: isAuthenticated ? 'pointer' : 'not-allowed',
+            cursor: isAuthenticated && !needsUsername ? 'pointer' : 'not-allowed',
             padding: '4px 8px',
             fontSize: '14px',
-            opacity: !isAuthenticated ? 0.5 : 1,
+            opacity: !isAuthenticated || needsUsername ? 0.5 : 1,
           }}
-          title={isAuthenticated ? 'Downvote' : 'Log in to vote'}
+          title={
+            !isAuthenticated
+              ? 'Log in to vote'
+              : needsUsername
+              ? 'Choose a username to vote'
+              : 'Downvote'
+          }
         >
           ▼
         </button>
@@ -76,7 +201,7 @@ function TheoryItem({ theory }: { theory: any }) {
         </p>
         <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12px', color: '#ef4444', opacity: 0.8 }}>
-            {theory.createdBy?.name || theory.createdBy?.email || 'Unknown'}
+            {theory.createdBy?.username || theory.createdBy?.name || theory.createdBy?.email || 'Unknown'}
           </span>
           <span style={{ fontSize: '12px', color: '#fff', opacity: 0.6 }}>
             {new Date(theory.createdAt).toLocaleDateString()}
@@ -110,6 +235,14 @@ function TopTheoriesPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['top-theories'],
     queryFn: () => getTopTheories(),
+  });
+  const {
+    data: leaderboardData,
+    isLoading: leaderboardLoading,
+    error: leaderboardError,
+  } = useQuery({
+    queryKey: ['contribution-leaderboard'],
+    queryFn: () => getContributionLeaderboard(),
   });
 
   const theories = data?.theories ?? [];
@@ -149,6 +282,12 @@ function TopTheoriesPage() {
             )}
           </div>
         )}
+
+        <ContributionLeaderboardSection
+          data={leaderboardData}
+          isLoading={leaderboardLoading}
+          error={leaderboardError}
+        />
 
         {/* Directory section */}
         <div className="directory-section">
@@ -194,4 +333,3 @@ function TopTheoriesPage() {
 }
 
 export default TopTheoriesPage;
-

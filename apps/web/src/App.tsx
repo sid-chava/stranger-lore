@@ -9,6 +9,7 @@ import CanonBrowsePage from './pages/CanonBrowsePage';
 import CanonFolderPageList from './pages/CanonFolderPageList';
 import CanonPageView from './pages/CanonPageView';
 import TopTheoriesPage from './pages/TopTheoriesPage';
+import UsernamePrompt from './components/UsernamePrompt';
 
 function HandlerRoutes() {
   const location = useLocation();
@@ -62,6 +63,7 @@ function App() {
     <Suspense fallback="Loading...">
       <StackProvider app={stackClientApp}>
         <StackTheme>
+          <UsernamePrompt />
           <AppRoutes />
         </StackTheme>
       </StackProvider>
@@ -70,4 +72,3 @@ function App() {
 }
 
 export default App;
-

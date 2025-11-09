@@ -64,6 +64,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             stackAuthId: user.stackAuthId,
             email: user.email,
             name: user.name,
+            username: user.username,
             roles: user.userRoles.map((ur: any) => ur.role.name),
             createdAt: user.createdAt,
           })),
@@ -166,6 +167,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             id: userRole.user.id,
             email: userRole.user.email,
             name: userRole.user.name,
+            username: userRole.user.username,
             roles: userRole.user.userRoles.map((ur: any) => ur.role.name),
           },
         };
@@ -231,6 +233,7 @@ export async function adminRoutes(fastify: FastifyInstance) {
             id: updatedUser!.id,
             email: updatedUser!.email,
             name: updatedUser!.name,
+            username: updatedUser!.username,
             roles: updatedUser!.userRoles.map((ur: any) => ur.role.name),
           },
         };

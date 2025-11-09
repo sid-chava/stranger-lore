@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, ContributionType } from '@prisma/client';
 import { z } from 'zod';
 import { authenticateUser, optionalAuth } from '../middleware/auth.js';
 
@@ -68,6 +68,12 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           return reply.code(401).send({ error: 'User not found' });
         }
 
+        if (!user.username) {
+          return reply
+            .code(400)
+            .send({ error: 'Username required before submitting a theory' });
+        }
+
         const theory = await prisma.theory.create({
           data: {
             content: parsed.data.content,
@@ -94,7 +100,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           where: { status: 'pending' },
           include: {
             createdBy: {
-              select: { id: true, email: true, name: true },
+              select: { id: true, email: true, name: true, username: true },
             },
             tags: {
               include: {
@@ -145,6 +151,9 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           return reply.code(404).send({ error: 'Theory not found' });
         }
 
+        const statusChangedToApproved =
+          parsed.data.status === 'approved' && theory.status !== 'approved';
+
         // Update theory status and tags
         await prisma.$transaction(async (tx: any) => {
           await tx.theory.update({
@@ -169,6 +178,24 @@ export async function theoryRoutes(fastify: FastifyInstance) {
                 theoryId: id,
                 tagId,
               })),
+            });
+          }
+
+          if (statusChangedToApproved) {
+            await tx.contribution.upsert({
+              where: {
+                userId_theoryId_type: {
+                  userId: theory.createdById,
+                  theoryId: theory.id,
+                  type: ContributionType.theory_approved,
+                },
+              },
+              update: {},
+              create: {
+                userId: theory.createdById,
+                theoryId: theory.id,
+                type: ContributionType.theory_approved,
+              },
             });
           }
         });
@@ -244,7 +271,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           where: { status: 'approved' },
           include: {
             createdBy: {
-              select: { id: true, email: true, name: true },
+              select: { id: true, email: true, name: true, username: true },
             },
             tags: {
               include: { tag: true },
@@ -335,22 +362,40 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           return reply.code(404).send({ error: 'Theory not found or not approved' });
         }
 
-        // Upsert vote (user can change their vote)
-        await prisma.vote.upsert({
-          where: {
-            theoryId_userId: {
+        // Upsert vote (user can change their vote) and log contribution
+        await prisma.$transaction(async (tx) => {
+          await tx.vote.upsert({
+            where: {
+              theoryId_userId: {
+                theoryId: id,
+                userId: user.id,
+              },
+            },
+            update: {
+              value: parsed.data.value,
+            },
+            create: {
               theoryId: id,
               userId: user.id,
+              value: parsed.data.value,
             },
-          },
-          update: {
-            value: parsed.data.value,
-          },
-          create: {
-            theoryId: id,
-            userId: user.id,
-            value: parsed.data.value,
-          },
+          });
+
+          await tx.contribution.upsert({
+            where: {
+              userId_theoryId_type: {
+                userId: user.id,
+                theoryId: id,
+                type: ContributionType.theory_vote,
+              },
+            },
+            update: {},
+            create: {
+              userId: user.id,
+              theoryId: id,
+              type: ContributionType.theory_vote,
+            },
+          });
         });
 
         // Get updated vote counts
@@ -370,4 +415,3 @@ export async function theoryRoutes(fastify: FastifyInstance) {
     }
   );
 }
-

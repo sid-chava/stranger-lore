@@ -1,32 +1,41 @@
 import { useUser, useStackApp } from '@stackframe/react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { getCurrentUser } from '../services/api';
 
 // Simplified auth context using Stack React hooks
 export function useAuth() {
   const app = useStackApp();
   const user = useUser({ or: 'return-null' });
-  const [userRoles, setUserRoles] = useState<string[]>([]);
-  const [isLoadingRoles, setIsLoadingRoles] = useState(false);
+  const [profile, setProfile] = useState<{ roles: string[]; username?: string } | null>(null);
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+  const fetchProfile = useCallback(() => {
+    if (!user || !app) {
+      setProfile(null);
+      setIsLoadingProfile(false);
+      return;
+    }
+
+    setIsLoadingProfile(true);
+    getCurrentUser(app)
+      .then((data: any) => {
+        setProfile({
+          roles: data.roles || [],
+          username: data.username || undefined,
+        });
+      })
+      .catch((error) => {
+        console.error('Failed to fetch user profile:', error);
+        setProfile(null);
+      })
+      .finally(() => {
+        setIsLoadingProfile(false);
+      });
+  }, [user, app]);
 
   useEffect(() => {
-    if (user && app) {
-      setIsLoadingRoles(true);
-      getCurrentUser(app)
-        .then((data: any) => {
-          setUserRoles(data.roles || []);
-        })
-        .catch((error) => {
-          console.error('Failed to fetch user roles:', error);
-          setUserRoles([]);
-        })
-        .finally(() => {
-          setIsLoadingRoles(false);
-        });
-    } else {
-      setUserRoles([]);
-    }
-  }, [user, app]);
+    fetchProfile();
+  }, [fetchProfile]);
 
   const login = async () => {
     await app.redirectToSignIn();
@@ -34,7 +43,7 @@ export function useAuth() {
 
   const logout = async () => {
     await user?.signOut();
-    setUserRoles([]);
+    setProfile(null);
   };
 
   // Get role indicator letter
@@ -45,17 +54,25 @@ export function useAuth() {
     return null;
   };
 
+  const currentRoles = profile?.roles ?? [];
+  const hasUsername = Boolean(profile?.username);
+  const needsUsername = Boolean(user && !hasUsername);
+
   return {
     user: user ? {
       id: user.id,
       email: user.primaryEmail || undefined,
       name: user.displayName || undefined,
-      roles: userRoles,
+      roles: currentRoles,
+      username: profile?.username,
     } : null,
     isAuthenticated: !!user,
-    isLoading: isLoadingRoles,
+    isLoading: isLoadingProfile,
     login,
     logout,
-    roleIndicator: getRoleIndicator(userRoles),
+    roleIndicator: getRoleIndicator(currentRoles),
+    hasUsername,
+    needsUsername,
+    refreshProfile: fetchProfile,
   };
 }

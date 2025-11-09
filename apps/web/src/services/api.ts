@@ -143,6 +143,7 @@ export async function getCurrentUser(app: StackClientApp) {
     stackAuthId: string;
     email?: string;
     name?: string;
+    username?: string;
     roles: string[];
   }>('/api/auth/me', undefined, app);
 }
@@ -290,4 +291,40 @@ export async function voteTheory(id: string, value: 1 | -1) {
       body: JSON.stringify({ value: value.toString() }),
     }
   );
+}
+
+export async function updateUsername(username: string) {
+  return apiRequest<{ id: string; username: string }>(
+    '/api/auth/username',
+    {
+      method: 'PUT',
+      body: JSON.stringify({ username }),
+    }
+  );
+}
+
+export type ContributionLeaderboardEntry = {
+  userId: string;
+  username?: string | null;
+  name?: string | null;
+  email?: string | null;
+  contributions: number;
+  approvals: number;
+  votes: number;
+  rank: number;
+};
+
+export type ContributionCurrentUser = Omit<ContributionLeaderboardEntry, 'rank'> & {
+  rank: number | null;
+};
+
+export type ContributionLeaderboardResponse = {
+  leaderboard: ContributionLeaderboardEntry[];
+  currentUser: ContributionCurrentUser | null;
+  totalContributions: number;
+  totalContributors: number;
+};
+
+export async function getContributionLeaderboard() {
+  return apiRequest<ContributionLeaderboardResponse>('/api/contributions/leaderboard');
 }

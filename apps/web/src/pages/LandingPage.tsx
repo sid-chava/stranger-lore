@@ -16,7 +16,7 @@ function AuthButton() {
     return (
       <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
         <span className="auth-link" style={{ color: '#ffffff' }}>
-          {user.name || user.email || 'User'}
+          {user.username || user.name || user.email || 'User'}
           {roleIndicator && (
             <span style={{ marginLeft: '6px', opacity: 0.8, fontSize: '0.9em' }}>
               ({roleIndicator})
@@ -58,7 +58,7 @@ function AuthButton() {
 }
 
 function LandingPage() {
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, needsUsername } = useAuth();
   const [theoryContent, setTheoryContent] = useState('');
 
   const submitTheory = useMutation({
@@ -79,6 +79,10 @@ function LandingPage() {
     }
     if (!isAuthenticated) {
       alert('Please log in to submit a theory');
+      return;
+    }
+    if (needsUsername) {
+      alert('Please pick a username before contributing');
       return;
     }
     submitTheory.mutate(theoryContent.trim());
@@ -123,11 +127,16 @@ function LandingPage() {
             placeholder="Contribute a 'Stranger Things' fact, easter egg, or theory to contribute to our library..."
             disabled={submitTheory.isPending}
           />
+          {needsUsername && isAuthenticated && (
+            <p style={{ color: '#f87171', fontSize: '12px', marginTop: '8px' }}>
+              Pick a username to start contributing.
+            </p>
+          )}
           <div className="input-actions">
             <button 
               className="submit-button"
               onClick={handleSubmit}
-              disabled={submitTheory.isPending || !isAuthenticated}
+              disabled={submitTheory.isPending || !isAuthenticated || needsUsername}
             >
               <img 
                 src="/assets/submit.png" 

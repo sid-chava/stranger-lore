@@ -18,6 +18,7 @@ model User {
   stackAuthId String @unique @map("stack_auth_id") // Maps to Stack Auth user ID
   email     String?
   name      String?
+  username  String?  @unique
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
@@ -26,6 +27,7 @@ model User {
   createdTheories Theory[]
   moderatedTheories Theory[] @relation("TheoryModerator")
   votes Vote[]
+  contributions Contribution[]
 
   @@map("users")
 }
@@ -143,6 +145,7 @@ model Theory {
   moderator User? @relation("TheoryModerator", fields: [moderatedById], references: [id])
   tags      TheoryTag[]
   votes     Vote[]
+  contributions Contribution[]
 
   @@index([status])
   @@index([createdAt])
@@ -191,3 +194,23 @@ model Vote {
   @@map("votes")
 }
 
+enum ContributionType {
+  theory_vote
+  theory_approved
+}
+
+model Contribution {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  theoryId  String           @map("theory_id")
+  type      ContributionType
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  theory Theory @relation(fields: [theoryId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, theoryId, type])
+  @@index([userId])
+  @@index([type])
+  @@map("contributions")
+}
