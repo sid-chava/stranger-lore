@@ -257,6 +257,11 @@ export async function getUnmoderatedTheories() {
   return apiRequest<{ theories: any[] }>('/api/theories/unmoderated');
 }
 
+export async function getApprovedTheories(search?: string) {
+  const query = search ? `?search=${encodeURIComponent(search)}` : '';
+  return apiRequest<{ theories: any[] }>(`/api/theories/approved${query}`);
+}
+
 export async function moderateTheory(id: string, input: {
   status: 'approved' | 'denied';
   title?: string;
@@ -277,6 +282,12 @@ export async function createTag(name: string) {
   return apiRequest<{ tag: any }>('/api/tags', {
     method: 'POST',
     body: JSON.stringify({ name }),
+  });
+}
+
+export async function deleteTag(id: string) {
+  return apiRequest<{ success: boolean }>(`/api/tags/${id}`, {
+    method: 'DELETE',
   });
 }
 

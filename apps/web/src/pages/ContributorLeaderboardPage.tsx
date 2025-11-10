@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { getContributionLeaderboard, type ContributionLeaderboardResponse } from '../services/api';
 import './LandingPage.css';
 import AnimatedCounter from '../components/AnimatedCounter';
+import DirectoryLinks from '../components/DirectoryLinks';
 
 type LeaderboardSectionProps = {
   data?: ContributionLeaderboardResponse;
@@ -124,24 +124,7 @@ function ContributorLeaderboardPage() {
 
         <LeaderboardTable data={leaderboardData} isLoading={leaderboardLoading} error={leaderboardError} />
 
-        <div className="directory-section">
-          <h2 className="directory-title">DIRECTORY</h2>
-          <ul className="directory-list">
-            <li className="directory-item">
-              &gt; <Link to="/" style={{ color: '#dc2626', textDecoration: 'none' }}>RETURN HOME</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
-            </li>
-            <li className="directory-item">&gt; CONTRIBUTOR LEADERBOARD</li>
-            <li className="directory-item">
-              &gt; <Link to="/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link>
-            </li>
-          </ul>
-        </div>
+        <DirectoryLinks active="leaderboard" />
 
         <footer className="footer-section">
           <div className="footer-left">
@@ -152,7 +135,7 @@ function ContributorLeaderboardPage() {
               <a href="https://instagram.com/loreobsessed" className="social-link">
                 <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
               </a>
-              <a href="#" className="social-link">
+              <a href="https://tiktok.com/@lore" className="social-link">
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>

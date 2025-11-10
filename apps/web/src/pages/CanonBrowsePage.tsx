@@ -5,6 +5,7 @@ import { getCanonFolders, listCanonFolderPages } from '../services/api';
 import './LandingPage.css';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useContributionStats } from '../hooks/useContributionStats';
+import DirectoryLinks from '../components/DirectoryLinks';
 
 function FolderItem({ folder, isExpanded, onToggle }: { folder: any; isExpanded: boolean; onToggle: () => void }) {
   const { data, isLoading } = useQuery({
@@ -105,27 +106,7 @@ function CanonBrowsePage() {
           {children.length === 0 && <div style={{ opacity: 0.7 }}>No folders</div>}
         </div>
 
-        {/* Directory section */}
-        <div className="directory-section">
-          <h2 className="directory-title">DIRECTORY</h2>
-          <ul className="directory-list">
-            <li className="directory-item">
-              &gt; <Link to="/" style={{ color: '#dc2626', textDecoration: 'none' }}>RETURN HOME</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/leaderboard" style={{ color: '#dc2626', textDecoration: 'none' }}>CONTRIBUTOR LEADERBOARD</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link>
-            </li>
-          </ul>
-        </div>
+        <DirectoryLinks active="browse" />
 
         {/* Footer section */}
         <footer className="footer-section">
@@ -137,7 +118,7 @@ function CanonBrowsePage() {
               <a href="https://instagram.com/loreobsessed" className="social-link">
                 <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
               </a>
-              <a href="#" className="social-link">
+              <a href="https://tiktok.com/@lore" className="social-link">
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>

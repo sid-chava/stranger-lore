@@ -72,6 +72,15 @@ const TheoryContentUpdateSchema = z.object({
   content: z.string().min(1).max(5000),
 });
 
+const ApprovedTheoriesQuerySchema = z.object({
+  search: z
+    .string()
+    .trim()
+    .min(1)
+    .max(200)
+    .optional(),
+});
+
 export async function theoryRoutes(fastify: FastifyInstance) {
   // Create theory (authenticated users)
   fastify.post(
@@ -114,6 +123,75 @@ export async function theoryRoutes(fastify: FastifyInstance) {
       } catch (error: any) {
         fastify.log.error(error);
         return reply.code(500).send({ error: { message: error?.message || 'Failed to create theory' } });
+      }
+    }
+  );
+
+  // Get approved theories for admin management
+  fastify.get(
+    '/api/theories/approved',
+    { preHandler: [authenticateUser, requireAdmin] },
+    async (request, reply) => {
+      try {
+        const parsedQuery = ApprovedTheoriesQuerySchema.safeParse(request.query ?? {});
+        const search = parsedQuery.success ? parsedQuery.data.search : undefined;
+
+        const where: any = {
+          status: 'approved',
+          title: { not: null },
+        };
+
+        if (search) {
+          where.OR = [
+            { title: { contains: search, mode: 'insensitive' } },
+            { content: { contains: search, mode: 'insensitive' } },
+            {
+              tags: {
+                some: {
+                  tag: {
+                    name: { contains: search, mode: 'insensitive' },
+                  },
+                },
+              },
+            },
+          ];
+        }
+
+        const theories = await prisma.theory.findMany({
+          where,
+          include: {
+            createdBy: {
+              select: { id: true, email: true, name: true, username: true },
+            },
+            tags: {
+              include: { tag: true },
+            },
+            votes: true,
+          },
+          orderBy: { moderatedAt: 'desc' },
+        });
+
+        const formatted = theories.map((theory: any) => {
+          const upvotes = theory.votes.filter((v: any) => v.value === 1).length;
+          const downvotes = theory.votes.filter((v: any) => v.value === -1).length;
+          return {
+            id: theory.id,
+            title: theory.title,
+            content: theory.content,
+            createdAt: theory.createdAt,
+            moderatedAt: theory.moderatedAt,
+            createdBy: theory.createdBy,
+            tags: theory.tags.map((tt: any) => tt.tag),
+            upvotes,
+            downvotes,
+            score: upvotes - downvotes,
+          };
+        });
+
+        return { theories: formatted };
+      } catch (error: any) {
+        fastify.log.error(error);
+        return reply.code(500).send({ error: { message: error?.message || 'Failed to fetch approved theories' } });
       }
     }
   );
@@ -455,6 +533,25 @@ export async function theoryRoutes(fastify: FastifyInstance) {
       } catch (error: any) {
         fastify.log.error(error);
         return reply.code(500).send({ error: { message: error?.message || 'Failed to create tag' } });
+      }
+    }
+  );
+
+  // Delete tag (admin only)
+  fastify.delete(
+    '/api/tags/:id',
+    { preHandler: [authenticateUser, requireAdmin] },
+    async (request, reply) => {
+      try {
+        const { id } = request.params as { id: string };
+        await prisma.tag.delete({ where: { id } });
+        return { success: true };
+      } catch (error: any) {
+        if (error?.code === 'P2025') {
+          return reply.code(404).send({ error: { message: 'Tag not found' } });
+        }
+        fastify.log.error(error);
+        return reply.code(500).send({ error: { message: error?.message || 'Failed to delete tag' } });
       }
     }
   );

@@ -1,5 +1,5 @@
+import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { getTopTheories, voteTheory } from '../services/api';
 import './LandingPage.css';
@@ -7,6 +7,7 @@ import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useContributionStats } from '../hooks/useContributionStats';
+import DirectoryLinks from '../components/DirectoryLinks';
 
 
 function TheoryItem({ theory }: { theory: any }) {
@@ -195,6 +196,33 @@ function TopTheoriesPage() {
   const { data: contributionStats } = useContributionStats();
   const totalContributions = contributionStats?.totalContributions ?? 0;
   const theories = data?.theories ?? [];
+  const [selectedTag, setSelectedTag] = useState('all');
+
+  const tagOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    theories.forEach((theory: any) => {
+      (theory.tags ?? []).forEach((tag: any) => {
+        if (tag?.id && tag?.name) {
+          map.set(tag.id, tag.name);
+        }
+      });
+    });
+    return Array.from(map.entries())
+      .map(([id, name]) => ({ id, name }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+  }, [theories]);
+
+  const filteredTheories = useMemo(() => {
+    if (selectedTag === 'all') return theories;
+    return theories.filter((theory: any) => theory.tags?.some((tag: any) => tag.id === selectedTag));
+  }, [selectedTag, theories]);
+
+  useEffect(() => {
+    if (selectedTag === 'all') return;
+    if (!tagOptions.some((tag) => tag.id === selectedTag)) {
+      setSelectedTag('all');
+    }
+  }, [selectedTag, tagOptions]);
 
   return (
     <div className="landing-page">
@@ -219,40 +247,61 @@ function TopTheoriesPage() {
         )}
 
         {!isLoading && !error && (
-          <div style={{ background: 'rgba(0,0,0,0.35)', padding: 20, borderRadius: 6, border: '1px solid #ef4444' }}>
-            {theories.length === 0 ? (
+          <div style={{ background: 'rgba(0,0,0,0.35)', padding: 20, borderRadius: 6, border: '1px solid #ef4444', display: 'flex', flexDirection: 'column', gap: 16 }}>
+            <div>
+              <p style={{ margin: '0 0 8px 0', color: '#f87171', fontSize: 14 }}>Filter by tag</p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                <button
+                  onClick={() => setSelectedTag('all')}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 4,
+                    border: '1px solid #ef4444',
+                    background: selectedTag === 'all' ? '#2563eb' : 'transparent',
+                    color: '#fff',
+                    fontSize: 12,
+                    cursor: 'pointer',
+                  }}
+                >
+                  All Tags
+                </button>
+                {tagOptions.length === 0 && (
+                  <span style={{ fontSize: 12, color: '#9ca3af' }}>Tags will appear as moderators start applying them.</span>
+                )}
+                {tagOptions.map((tag) => (
+                  <button
+                    key={tag.id}
+                    onClick={() => setSelectedTag(tag.id)}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 4,
+                      border: '1px solid #ef4444',
+                      background: selectedTag === tag.id ? '#2563eb' : 'transparent',
+                      color: '#fff',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    {tag.name}
+                  </button>
+                ))}
+              </div>
+            </div>
+            {filteredTheories.length === 0 ? (
               <div style={{ color: '#fff', opacity: 0.7, textAlign: 'center', padding: 40 }}>
-                No approved theories yet. Be the first to submit one!
+                {selectedTag === 'all'
+                  ? 'No approved theories yet. Be the first to submit one!'
+                  : 'No theories have been tagged this way yet.'}
               </div>
             ) : (
-              theories.map((theory: any) => (
+              filteredTheories.map((theory: any) => (
                 <TheoryItem key={theory.id} theory={theory} />
               ))
             )}
           </div>
         )}
 
-        {/* Directory section */}
-        <div className="directory-section">
-          <h2 className="directory-title">DIRECTORY</h2>
-          <ul className="directory-list">
-            <li className="directory-item">
-              &gt; <Link to="/" style={{ color: '#dc2626', textDecoration: 'none' }}>RETURN HOME</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/leaderboard" style={{ color: '#dc2626', textDecoration: 'none' }}>CONTRIBUTOR LEADERBOARD</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link>
-            </li>
-          </ul>
-        </div>
+        <DirectoryLinks active="browse" />
 
         {/* Footer section */}
         <footer className="footer-section">
@@ -264,7 +313,7 @@ function TopTheoriesPage() {
               <a href="https://instagram.com/loreobsessed" className="social-link">
                 <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
               </a>
-              <a href="#" className="social-link">
+              <a href="https://tiktok.com/@lore" className="social-link">
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>

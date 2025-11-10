@@ -2,10 +2,10 @@ import './LandingPage.css';
 import { useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
-import { Link } from 'react-router-dom';
 import { createTheory } from '../services/api';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useContributionStats } from '../hooks/useContributionStats';
+import DirectoryLinks from '../components/DirectoryLinks';
 
 function AuthButton() {
   const { isAuthenticated, isLoading, login, logout, user, roleIndicator } = useAuth();
@@ -62,6 +62,7 @@ function AuthButton() {
 function LandingPage() {
   const { isAuthenticated, needsUsername } = useAuth();
   const [theoryContent, setTheoryContent] = useState('');
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
   const { data: contributionStats } = useContributionStats();
   const totalContributions = contributionStats?.totalContributions ?? 0;
 
@@ -69,7 +70,9 @@ function LandingPage() {
     mutationFn: (content: string) => createTheory(content),
     onSuccess: () => {
       setTheoryContent('');
-      alert('Theory submitted! It will be reviewed by moderators.');
+      alert(
+        'Your theory has been submitted for review. In the meantime you can submit more theories or join the #StrangerThings channel in our Discord to discuss your theories with fellow fans!'
+      );
     },
     onError: (error: any) => {
       alert('Failed to submit theory: ' + (error.message || 'Please log in'));
@@ -99,6 +102,7 @@ function LandingPage() {
   };
 
   return (
+    <>
     <div className="landing-page">
       {/* Background image */}
       <div className="background-image" />
@@ -107,10 +111,15 @@ function LandingPage() {
       <header className="header-bar">
         <div className="header-content">
           <div className="header-left">
-            <h1 className="logo">Stranger Lore</h1>
+            <img
+              src="/assets/stranger-lore-logo.png"
+              alt="Stranger Lore"
+              className="brand-logo"
+              loading="lazy"
+            />
             <p className="description">
-              A fan project on a mission to become the first-ever 100% fan-sourced library for all canon and fanon related to Netflix's{' '}
-              <span className="highlight">'Stranger Things'</span>
+              The first-ever 100% fan-sourced library for theories and fanon related to Season 5 of Netflix's{' '}
+              <span className="highlight">'Stranger Things'</span>.
             </p>
           </div>
           <div className="header-right">
@@ -128,7 +137,7 @@ function LandingPage() {
             value={theoryContent}
             onChange={(e) => setTheoryContent(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Contribute a 'Stranger Things' fact, easter egg, or theory to contribute to our library..."
+            placeholder="Submit a Stranger Things 5 easter egg, prediction, or theory to contribute to our library..."
             disabled={submitTheory.isPending}
           />
           {needsUsername && isAuthenticated && (
@@ -153,10 +162,15 @@ function LandingPage() {
                 }}
               />
             </button>
-            <button className="help-button">
+            <button
+              type="button"
+              className="help-button"
+              onClick={() => setIsHelpOpen(true)}
+              aria-label="Learn more about Stranger Lore"
+            >
               <img 
                 src="/assets/FAQ.png" 
-                alt="FAQ" 
+                alt="Help" 
                 className="help-button-image"
                 loading="lazy"
                 onError={(e) => {
@@ -168,23 +182,7 @@ function LandingPage() {
           </div>
         </div>
 
-        {/* Directory section */}
-        <div className="directory-section">
-          <h2 className="directory-title">DIRECTORY</h2>
-          <ul className="directory-list">
-            <li className="directory-item">
-              &gt; <Link to="/" style={{ color: '#dc2626', textDecoration: 'none' }}>RETURN HOME</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/leaderboard" style={{ color: '#dc2626', textDecoration: 'none' }}>CONTRIBUTOR LEADERBOARD</Link>
-            </li>
-            <li className="directory-item">&gt; <Link to= "/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
-            <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
-          </ul>
-        </div>
+        <DirectoryLinks active="home" />
 
         {/* Demogorgon section - bottom center */}
         <div className="demogorgon-section">
@@ -202,17 +200,17 @@ function LandingPage() {
           </div>
         </div>
 
-        {/* Footer section */}
-        <footer className="footer-section">
-          <div className="footer-left">
-            <div className="social-links">
-              <a href="https://x.com/loreobsessed" className="social-link">
-                <img src="/assets/social-x.png" alt="X/Twitter" className="social-icon" />
-              </a>
+      {/* Footer section */}
+      <footer className="footer-section">
+        <div className="footer-left">
+          <div className="social-links">
+            <a href="https://x.com/loreobsessed" className="social-link">
+              <img src="/assets/social-x.png" alt="X/Twitter" className="social-icon" />
+            </a>
               <a href="https://instagram.com/loreobsessed" className="social-link">
                 <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
               </a>
-              <a href="#" className="social-link">
+              <a href="https://tiktok.com/@lore" className="social-link">
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>
@@ -224,6 +222,37 @@ function LandingPage() {
         </footer>
       </main>
     </div>
+
+    {isHelpOpen && (
+      <div
+        className="about-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="About Stranger Lore"
+        onClick={() => setIsHelpOpen(false)}
+      >
+        <div className="about-modal-content" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            className="modal-close"
+            aria-label="Close about modal"
+            onClick={() => setIsHelpOpen(false)}
+          >
+            X
+          </button>
+          <p>
+            Stranger Lore is a fan-made experiment in audience participation. Lore is on a mission to map, preserve, and play
+            with the ways fans shape the mythology around massive cultural moments like the release of Stranger Things 5.
+          </p>
+          <p>
+            Submit your theory, upvote what feels right, downvote what doesn't, and watch the leaderboard evolve as the gate opens
+            one last time. This site is an unofficial fan project and is not affiliated with, sponsored, or endorsed by Netflix or
+            the creators of Stranger Things.
+          </p>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
 

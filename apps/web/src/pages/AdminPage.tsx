@@ -1,6 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import {
   getUnmoderatedTheories,
@@ -8,15 +7,18 @@ import {
   getTags,
   createTag,
   getIncompleteTheories,
+  getApprovedTheories,
   updateTheoryTitle,
   splitTheory,
   updateTheoryContent,
+  deleteTag,
 } from '../services/api';
 import './LandingPage.css';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useContributionStats } from '../hooks/useContributionStats';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import DirectoryLinks from '../components/DirectoryLinks';
 
 type TheoryModerationItemProps = {
   theory: any;
@@ -67,6 +69,10 @@ function TheoryModerationItem({
     setIsExpanded(false);
     setIsEditingContent(false);
   }, [theory.id, theory.title, theory.tags, theory.content]);
+
+  useEffect(() => {
+    setSelectedTags((prev) => prev.filter((id) => tags.some((tag: any) => tag.id === id)));
+  }, [tags]);
 
   const toggleTag = (tagId: string) => {
     setSelectedTags((prev) =>
@@ -452,6 +458,15 @@ function SplitTheoryModal({ theory, tags, isSubmitting, onClose, onSubmit }: Spl
     },
   ]);
 
+  useEffect(() => {
+    setParts((prev) =>
+      prev.map((part) => ({
+        ...part,
+        tagIds: part.tagIds.filter((tagId) => tags.some((tag: any) => tag.id === tagId)),
+      }))
+    );
+  }, [tags]);
+
   const updatePart = (index: number, field: 'title' | 'content', value: string) => {
     setParts((prev) =>
       prev.map((part, i) => (i === index ? { ...part, [field]: value } : part))
@@ -701,7 +716,7 @@ function SplitTheoryModal({ theory, tags, isSubmitting, onClose, onSubmit }: Spl
 
 type IncompleteTheoryItemProps = {
   theory: any;
-  onSave: (data: { id: string; title: string }) => void;
+  onSave: (data: { id: string; title: string; tagIds?: string[] }) => void;
   isSaving: boolean;
 };
 
@@ -765,6 +780,250 @@ function IncompleteTheoryItem({ theory, onSave, isSaving }: IncompleteTheoryItem
   );
 }
 
+type ApprovedTheoryItemProps = {
+  theory: any;
+  tags: any[];
+  onSaveMeta: (data: { id: string; title: string; tagIds?: string[] }) => void;
+  onSaveContent: (data: { id: string; content: string }) => void;
+  onRemove: (data: { id: string; reason?: string }) => void;
+  isSavingMeta: boolean;
+  isSavingContent: boolean;
+  isRemoving: boolean;
+};
+
+function ApprovedTheoryItem({
+  theory,
+  tags,
+  onSaveMeta,
+  onSaveContent,
+  onRemove,
+  isSavingMeta,
+  isSavingContent,
+  isRemoving,
+}: ApprovedTheoryItemProps) {
+  const [title, setTitle] = useState(theory.title || '');
+  const [selectedTags, setSelectedTags] = useState<string[]>(theory.tags?.map((tag: any) => tag.id) ?? []);
+  const [contentDraft, setContentDraft] = useState(theory.content);
+  const [isEditingContent, setIsEditingContent] = useState(false);
+
+  useEffect(() => {
+    setTitle(theory.title || '');
+    setSelectedTags(theory.tags?.map((tag: any) => tag.id) ?? []);
+    setContentDraft(theory.content);
+    setIsEditingContent(false);
+  }, [theory.id, theory.title, theory.tags, theory.content]);
+
+  useEffect(() => {
+    setSelectedTags((prev) => prev.filter((id) => tags.some((tag: any) => tag.id === id)));
+  }, [tags]);
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]));
+  };
+
+  const handleSaveMeta = () => {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      alert('Title is required');
+      return;
+    }
+    onSaveMeta({ id: theory.id, title: trimmed, tagIds: selectedTags });
+  };
+
+  const handleSaveContent = () => {
+    if (!contentDraft.trim()) {
+      alert('Content cannot be empty');
+      return;
+    }
+    onSaveContent({ id: theory.id, content: contentDraft });
+    setIsEditingContent(false);
+  };
+
+  const handleRemove = () => {
+    if (!window.confirm('Remove this theory from the public list?')) {
+      return;
+    }
+    const reason = window.prompt('Optional: share a short reason for removing this theory.');
+    onRemove({ id: theory.id, reason: reason || undefined });
+  };
+
+  return (
+    <div style={{ border: '1px solid rgba(59,130,246,0.5)', borderRadius: 8, padding: 16, background: 'rgba(15,23,42,0.5)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+        <div>
+          <h4 style={{ margin: 0, color: '#f87171' }}>{theory.title}</h4>
+          <p style={{ margin: '4px 0', fontSize: 12, color: '#9ca3af' }}>
+            By {theory.createdBy?.username || theory.createdBy?.name || theory.createdBy?.email || 'Unknown'} •{' '}
+            {theory.moderatedAt ? new Date(theory.moderatedAt).toLocaleDateString() : 'Unknown date'}
+          </p>
+        </div>
+        <div style={{ fontSize: 12, color: '#93c5fd', textAlign: 'right' }}>
+          <div>Score: {theory.score ?? 0}</div>
+          <div>▲ {theory.upvotes ?? 0} / ▼ {theory.downvotes ?? 0}</div>
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#ef4444' }}>Title</label>
+        <input
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          style={{
+            width: '100%',
+            padding: '6px 8px',
+            borderRadius: 4,
+            border: '1px solid #ef4444',
+            background: '#0b1220',
+            color: '#fff',
+          }}
+        />
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        <label style={{ display: 'block', marginBottom: 4, fontSize: 12, color: '#ef4444' }}>Tags</label>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          {tags.length === 0 && <span style={{ fontSize: 12, opacity: 0.7 }}>No tags available</span>}
+          {tags.map((tag: any) => (
+            <button
+              key={tag.id}
+              onClick={() => toggleTag(tag.id)}
+              style={{
+                padding: '4px 8px',
+                borderRadius: 4,
+                border: '1px solid #ef4444',
+                background: selectedTags.includes(tag.id) ? '#059669' : '#111827',
+                color: '#fff',
+                fontSize: 12,
+                cursor: 'pointer',
+              }}
+            >
+              {tag.name}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ marginTop: 12 }}>
+        {isEditingContent ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <textarea
+              value={contentDraft}
+              onChange={(e) => setContentDraft(e.target.value)}
+              rows={6}
+              style={{
+                width: '100%',
+                padding: 8,
+                borderRadius: 4,
+                border: '1px solid #ef4444',
+                background: '#0f172a',
+                color: '#fff',
+                resize: 'vertical',
+              }}
+            />
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <button
+                onClick={handleSaveContent}
+                disabled={isSavingContent}
+                style={{
+                  padding: '6px 12px',
+                  background: '#059669',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                {isSavingContent ? 'Saving...' : 'Save Content'}
+              </button>
+              <button
+                onClick={() => {
+                  setContentDraft(theory.content);
+                  setIsEditingContent(false);
+                }}
+                style={{
+                  padding: '6px 12px',
+                  background: '#111827',
+                  border: '1px solid #ef4444',
+                  borderRadius: 4,
+                  color: '#fff',
+                  cursor: 'pointer',
+                  fontSize: 12,
+                }}
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div
+            style={{
+              background: 'rgba(15,23,42,0.6)',
+              border: '1px solid rgba(239,68,68,0.3)',
+              borderRadius: 4,
+              padding: 8,
+              color: '#fff',
+              fontSize: 14,
+              whiteSpace: 'pre-wrap',
+              maxHeight: 180,
+              overflowY: 'auto',
+            }}
+          >
+            {theory.content}
+          </div>
+        )}
+      </div>
+
+      <div style={{ marginTop: 12, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+        <button
+          onClick={handleSaveMeta}
+          disabled={isSavingMeta}
+          style={{
+            padding: '6px 12px',
+            background: '#2563eb',
+            border: '1px solid #ef4444',
+            borderRadius: 4,
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: 12,
+          }}
+        >
+          {isSavingMeta ? 'Saving...' : 'Save Title & Tags'}
+        </button>
+        <button
+          onClick={() => setIsEditingContent((prev) => !prev)}
+          style={{
+            padding: '6px 12px',
+            background: '#0ea5e9',
+            border: '1px solid #ef4444',
+            borderRadius: 4,
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: 12,
+          }}
+        >
+          {isEditingContent ? 'Cancel Edit' : 'Edit Content'}
+        </button>
+        <button
+          onClick={handleRemove}
+          disabled={isRemoving}
+          style={{
+            padding: '6px 12px',
+            background: '#991b1b',
+            border: '1px solid #ef4444',
+            borderRadius: 4,
+            color: '#fff',
+            cursor: 'pointer',
+            fontSize: 12,
+          }}
+        >
+          {isRemoving ? 'Removing...' : 'Remove from list'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function AdminPage() {
   const { isAuthenticated, user } = useAuth();
   const isAdmin = !!user?.roles?.includes('admin');
@@ -774,18 +1033,35 @@ function AdminPage() {
     queryKey: ['unmoderated-theories'],
     queryFn: () => getUnmoderatedTheories(),
     enabled: isAdmin,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: tagsData } = useQuery({
     queryKey: ['tags'],
     queryFn: () => getTags(),
     enabled: isAdmin,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
 
   const { data: incompleteData, refetch: refetchIncomplete } = useQuery({
     queryKey: ['incomplete-theories'],
     queryFn: () => getIncompleteTheories(),
     enabled: isAdmin,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
+  });
+  const {
+    data: approvedData,
+    refetch: refetchApproved,
+    isFetching: isFetchingApproved,
+  } = useQuery({
+    queryKey: ['approved-theories'],
+    queryFn: () => getApprovedTheories(),
+    enabled: isAdmin,
+    staleTime: 30000,
+    refetchOnWindowFocus: false,
   });
   const { data: contributionStats } = useContributionStats();
   const totalContributions = contributionStats?.totalContributions ?? 0;
@@ -793,6 +1069,26 @@ function AdminPage() {
   const theories = theoriesData?.theories ?? [];
   const tags = tagsData?.tags ?? [];
   const incompleteTheories = incompleteData?.theories ?? [];
+  const approvedTheories = approvedData?.theories ?? [];
+  const [approvedSearch, setApprovedSearch] = useState('');
+
+  const filteredApprovedTheories = useMemo(() => {
+    const term = approvedSearch.trim().toLowerCase();
+    if (!term) return approvedTheories;
+    return approvedTheories.filter((theory: any) => {
+      const haystack = [
+        theory.title || '',
+        theory.content || '',
+        theory.createdBy?.name || '',
+        theory.createdBy?.username || '',
+        theory.createdBy?.email || '',
+        ...(theory.tags?.map((tag: any) => tag.name) ?? []),
+      ]
+        .join(' ')
+        .toLowerCase();
+      return haystack.includes(term);
+    });
+  }, [approvedSearch, approvedTheories]);
 
   // Commented out for now - folder/page creation disabled
   // const [folderName, setFolderName] = useState('');
@@ -856,13 +1152,28 @@ function AdminPage() {
       tagIds?: string[];
       denialReason?: string;
     }) => moderateTheory(id, { status, title, tagIds, denialReason }),
-    onSuccess: () => {
-      refetchTheories();
-      qc.invalidateQueries({ queryKey: ['tags'] });
+    onMutate: async ({ id }) => {
+      await qc.cancelQueries({ queryKey: ['unmoderated-theories'] });
+      const previous = qc.getQueryData(['unmoderated-theories']);
+      qc.setQueryData(['unmoderated-theories'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          theories: old.theories?.filter((theory: any) => theory.id !== id) ?? [],
+        };
+      });
+      return { previous };
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['unmoderated-theories'], context.previous);
+      }
       console.error('Failed to moderate theory:', error);
       alert('Failed to moderate theory: ' + (error.message || 'Unknown error'));
+    },
+    onSettled: () => {
+      refetchTheories();
+      qc.invalidateQueries({ queryKey: ['tags'] });
     },
   });
 
@@ -873,22 +1184,77 @@ function AdminPage() {
     },
   });
 
+  const deleteTagMut = useMutation({
+    mutationFn: (id: string) => deleteTag(id),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['tags'] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to delete tag:', error);
+      alert('Failed to delete tag: ' + (error.message || 'Unknown error'));
+    },
+  });
+
+  const handleDeleteTag = (tag: any) => {
+    if (deleteTagMut.isPending) {
+      return;
+    }
+    const confirmed = window.confirm(`Remove the tag "${tag.name}" from the bank?`);
+    if (!confirmed) return;
+    deleteTagMut.mutate(tag.id);
+  };
+
   const splitTheoryMut = useMutation({
     mutationFn: ({ id, parts }: { id: string; parts: { title: string; content: string; tagIds?: string[] }[] }) =>
       splitTheory(id, parts),
-    onSuccess: () => {
-      refetchTheories();
+    onMutate: async ({ id, parts }) => {
+      await qc.cancelQueries({ queryKey: ['unmoderated-theories'] });
+      const previous = qc.getQueryData(['unmoderated-theories']);
+      const tempIdPrefix = `temp-${Date.now()}`;
+      qc.setQueryData(['unmoderated-theories'], (old: any) => {
+        if (!old) return old;
+        const remaining = old.theories?.filter((theory: any) => theory.id !== id) ?? [];
+        const template = old.theories?.find((theory: any) => theory.id === id);
+        const provisional = parts.map((part, index) => ({
+          ...(template || {}),
+          id: `${tempIdPrefix}-${index}`,
+          title: part.title,
+          content: part.content,
+          tags: [],
+        }));
+        return { ...old, theories: [...provisional, ...remaining] };
+      });
+      return { previous, tempIdPrefix };
     },
-    onError: (error: any) => {
+    onError: (error: any, _variables, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['unmoderated-theories'], context.previous);
+      }
       console.error('Failed to split theory:', error);
       alert('Failed to split theory: ' + (error.message || 'Unknown error'));
+    },
+    onSuccess: (data, variables, context) => {
+      qc.setQueryData(['unmoderated-theories'], (old: any) => {
+        if (!old) return old;
+        const filtered = old.theories?.filter(
+          (theory: any) =>
+            theory.id !== variables.id && !(context?.tempIdPrefix && theory.id.startsWith(context.tempIdPrefix))
+        ) ?? [];
+        return { ...old, theories: [...data.theories, ...filtered] };
+      });
+    },
+    onSettled: () => {
+      refetchTheories();
     },
   });
 
   const updateTitleMut = useMutation({
-    mutationFn: ({ id, title }: { id: string; title: string }) => updateTheoryTitle(id, { title }),
+    mutationFn: ({ id, title, tagIds }: { id: string; title: string; tagIds?: string[] }) =>
+      updateTheoryTitle(id, { title, tagIds }),
     onSuccess: () => {
       refetchIncomplete();
+      refetchApproved();
+      qc.invalidateQueries({ queryKey: ['top-theories'] });
     },
     onError: (error: any) => {
       console.error('Failed to update title:', error);
@@ -898,8 +1264,36 @@ function AdminPage() {
 
   const updateContentMut = useMutation({
     mutationFn: ({ id, content }: { id: string; content: string }) => updateTheoryContent(id, content),
-    onSuccess: () => {
+    onMutate: async ({ id, content }) => {
+      await qc.cancelQueries({ queryKey: ['unmoderated-theories'] });
+      const previous = qc.getQueryData(['unmoderated-theories']);
+      qc.setQueryData(['unmoderated-theories'], (old: any) => {
+        if (!old) return old;
+        return {
+          ...old,
+          theories:
+            old.theories?.map((theory: any) => (theory.id === id ? { ...theory, content } : theory)) ?? [],
+        };
+      });
+      return { previous };
+    },
+    onError: (error: any, _variables, context) => {
+      if (context?.previous) {
+        qc.setQueryData(['unmoderated-theories'], context.previous);
+      }
+      console.error('Failed to update content:', error);
+      alert('Failed to update content: ' + (error.message || 'Unknown error'));
+    },
+    onSettled: () => {
       refetchTheories();
+    },
+  });
+
+  const updateApprovedContentMut = useMutation({
+    mutationFn: ({ id, content }: { id: string; content: string }) => updateTheoryContent(id, content),
+    onSuccess: () => {
+      refetchApproved();
+      qc.invalidateQueries({ queryKey: ['top-theories'] });
     },
     onError: (error: any) => {
       console.error('Failed to update content:', error);
@@ -907,9 +1301,22 @@ function AdminPage() {
     },
   });
 
+  const removeApprovedMut = useMutation({
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
+      moderateTheory(id, { status: 'denied', denialReason: reason }),
+    onSuccess: () => {
+      refetchApproved();
+      qc.invalidateQueries({ queryKey: ['top-theories'] });
+    },
+    onError: (error: any) => {
+      console.error('Failed to remove theory:', error);
+      alert('Failed to remove theory: ' + (error.message || 'Unknown error'));
+    },
+  });
+
   if (!isAuthenticated || !isAdmin) {
     return (
-      <div className="landing-page">
+      <div className="landing-page admin-view">
         <div className="background-image" />
         <div className="main-content" style={{ padding: 20, color: '#fff' }}>
           <h2 style={{ margin: 0, color: '#ef4444' }}>Admin</h2>
@@ -920,7 +1327,7 @@ function AdminPage() {
   }
 
   return (
-    <div className="landing-page">
+    <div className="landing-page admin-view">
       <div className="background-image" />
       <div
         className="main-content"
@@ -931,6 +1338,7 @@ function AdminPage() {
           minHeight: '100vh',
           display: 'flex',
           flexDirection: 'column',
+          gap: 24,
         }}
       >
         <div style={{ flex: 1 }}>
@@ -1082,7 +1490,96 @@ function AdminPage() {
               All approved theories have titles. Nice work!
             </div>
           )}
+      </div>
+    </div>
+
+      {/* Approved Theories */}
+      <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
+          <h3 style={{ margin: 0, color: '#ef4444' }}>Approved Theories</h3>
+          <input
+            value={approvedSearch}
+            onChange={(e) => setApprovedSearch(e.target.value)}
+            placeholder="Search title, author, or tag"
+            style={{
+              flex: 1,
+              minWidth: 220,
+              padding: '6px 8px',
+              borderRadius: 4,
+              border: '1px solid #ef4444',
+              background: '#0b1220',
+              color: '#fff',
+            }}
+          />
         </div>
+        <p style={{ fontSize: 12, opacity: 0.8, margin: '12px 0 16px 0' }}>
+          Edit approved theories, tune their tags, or remove them from the public feed if needed.
+        </p>
+        {isFetchingApproved ? (
+          <div style={{ opacity: 0.7, textAlign: 'center', padding: 20 }}>Loading approved theories...</div>
+        ) : filteredApprovedTheories.length === 0 ? (
+          <div style={{ opacity: 0.7, textAlign: 'center', padding: 20 }}>No approved theories match this search.</div>
+        ) : (
+          <div style={{ display: 'grid', gap: 16 }}>
+            {filteredApprovedTheories.map((theory: any) => (
+              <ApprovedTheoryItem
+                key={theory.id}
+                theory={theory}
+                tags={tags}
+                onSaveMeta={(payload) => updateTitleMut.mutate(payload)}
+                onSaveContent={(payload) => updateApprovedContentMut.mutate(payload)}
+                onRemove={(payload) => removeApprovedMut.mutate(payload)}
+                isSavingMeta={updateTitleMut.isPending}
+                isSavingContent={updateApprovedContentMut.isPending}
+                isRemoving={removeApprovedMut.isPending}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Tag Bank */}
+      <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
+        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Tag Bank</h3>
+        <p style={{ fontSize: 12, opacity: 0.8, marginBottom: 16 }}>
+          Remove tags from circulation if they are no longer needed. Approved theories that relied on a removed tag will stay published.
+        </p>
+        {tags.length === 0 ? (
+          <div style={{ opacity: 0.7, textAlign: 'center', padding: 20 }}>No tags yet. Create one while moderating.</div>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {tags.map((tag: any) => (
+              <div
+                key={tag.id}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 6,
+                  padding: '4px 8px',
+                  border: '1px solid rgba(239,68,68,0.6)',
+                  borderRadius: 4,
+                  background: 'rgba(15,23,42,0.6)',
+                }}
+              >
+                <span style={{ fontSize: 12, color: '#fff' }}>{tag.name}</span>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteTag(tag)}
+                  disabled={deleteTagMut.isPending}
+                  style={{
+                    border: 'none',
+                    background: 'transparent',
+                    color: '#ef4444',
+                    cursor: deleteTagMut.isPending ? 'not-allowed' : 'pointer',
+                    fontSize: 12,
+                  }}
+                >
+                  {deleteTagMut.isPending ? '...' : 'X'}
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Theory Moderation */}
@@ -1111,23 +1608,7 @@ function AdminPage() {
 
         </div>
 
-        {/* Directory section */}
-        <div className="directory-section">
-          <h2 className="directory-title">DIRECTORY</h2>
-          <ul className="directory-list">
-            <li className="directory-item">
-              &gt; <Link to="/" style={{ color: '#dc2626', textDecoration: 'none' }}>RETURN HOME</Link>
-            </li>
-            <li className="directory-item">
-              &gt; <Link to="/theories" style={{ color: '#dc2626', textDecoration: 'none' }}>TOP THEORIES FOR S5</Link>
-            </li>
-          <li className="directory-item">
-            &gt; <Link to="/leaderboard" style={{ color: '#dc2626', textDecoration: 'none' }}>CONTRIBUTOR LEADERBOARD</Link>
-          </li>
-            <li className="directory-item">&gt; <Link to="/admin" style={{ color: '#dc2626', textDecoration: 'none' }}>ADMIN</Link></li>
-            <li className="directory-item">&gt; <Link to="https://discord.gg/MB3ZTGth" style={{ color: '#dc2626', textDecoration: 'none' }}>JOIN OUR DISCORD</Link></li>
-          </ul>
-        </div>
+        <DirectoryLinks active="admin" />
 
         {/* Footer section */}
         <footer className="footer-section">
@@ -1139,7 +1620,7 @@ function AdminPage() {
               <a href="https://instagram.com/loreobsessed" className="social-link">
                 <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
               </a>
-              <a href="#" className="social-link">
+              <a href="https://tiktok.com/@lore" className="social-link">
                 <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
               </a>
             </div>
