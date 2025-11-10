@@ -76,3 +76,12 @@ img {
   color: #f87171;
   text-align: center;
 }
+
+.auth-modal-panel,
+.auth-modal-panel :is(h1, h2, h3, h4, h5, h6, p, span, label) {
+  color: #fff !important;
+}
+
+.auth-modal-panel a {
+  color: #f87171;
+}
