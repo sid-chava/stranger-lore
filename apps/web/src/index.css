@@ -38,6 +38,10 @@ img {
 
 .auth-modal-panel {
   position: relative;
+  border: 1px solid rgba(239, 68, 68, 0.7);
+  border-radius: 14px;
+  padding: 20px 28px 28px;
+  background: #0b1220;
 }
 
 .auth-modal-close {
