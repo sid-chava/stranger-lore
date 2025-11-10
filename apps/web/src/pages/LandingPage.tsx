@@ -46,7 +46,7 @@ function AuthButton() {
 
   return (
     <button
-      onClick={() => openAuthModal('Sign in to join the experiment.')}
+      onClick={() => openAuthModal()}
       className="auth-link"
       style={{
         background: 'none',
