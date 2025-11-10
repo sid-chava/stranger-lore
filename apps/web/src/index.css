@@ -68,3 +68,9 @@ img {
 .auth-modal-panel .stack-paragraph {
   color: #fff !important;
 }
+
+.auth-modal-panel p:has(> a[href*="sign-up"]),
+.auth-modal-panel p:has(> a[href*="signup"]),
+.auth-modal-panel .stack-sign-up-link {
+  display: none !important;
+}
