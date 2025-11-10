@@ -257,9 +257,15 @@ export async function getUnmoderatedTheories() {
   return apiRequest<{ theories: any[] }>('/api/theories/unmoderated');
 }
 
-export async function getApprovedTheories(search?: string) {
-  const query = search ? `?search=${encodeURIComponent(search)}` : '';
-  return apiRequest<{ theories: any[] }>(`/api/theories/approved${query}`);
+export async function getApprovedTheories(params?: { search?: string; page?: number; pageSize?: number }) {
+  const qs = new URLSearchParams();
+  if (params?.search) qs.set('search', params.search);
+  if (params?.page) qs.set('page', params.page.toString());
+  if (params?.pageSize) qs.set('pageSize', params.pageSize.toString());
+  const query = qs.toString();
+  return apiRequest<{ theories: any[]; total: number; page: number; pageSize: number; hasMore: boolean }>(
+    `/api/theories/approved${query ? `?${query}` : ''}`
+  );
 }
 
 export async function moderateTheory(id: string, input: {

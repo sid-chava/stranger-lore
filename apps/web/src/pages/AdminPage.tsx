@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import {
@@ -1052,16 +1052,38 @@ function AdminPage() {
     staleTime: 30000,
     refetchOnWindowFocus: false,
   });
+  const [approvedSearchInput, setApprovedSearchInput] = useState('');
+  const [approvedSearchQuery, setApprovedSearchQuery] = useState('');
+  const [approvedPage, setApprovedPage] = useState(1);
+  const approvedPageSize = 25;
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setApprovedSearchQuery(approvedSearchInput.trim());
+    }, 400);
+    return () => clearTimeout(handler);
+  }, [approvedSearchInput]);
+
+  useEffect(() => {
+    setApprovedPage(1);
+  }, [approvedSearchQuery]);
+
   const {
     data: approvedData,
     refetch: refetchApproved,
     isFetching: isFetchingApproved,
-  } = useQuery({
-    queryKey: ['approved-theories'],
-    queryFn: () => getApprovedTheories(),
+  } = useQuery<{ theories: any[]; total: number; page: number; pageSize: number; hasMore: boolean }>({
+    queryKey: ['approved-theories', { search: approvedSearchQuery, page: approvedPage }],
+    queryFn: () =>
+      getApprovedTheories({
+        search: approvedSearchQuery || undefined,
+        page: approvedPage,
+        pageSize: approvedPageSize,
+      }),
     enabled: isAdmin,
     staleTime: 30000,
     refetchOnWindowFocus: false,
+    placeholderData: (prev) => prev,
   });
   const { data: contributionStats } = useContributionStats();
   const totalContributions = contributionStats?.totalContributions ?? 0;
@@ -1070,25 +1092,10 @@ function AdminPage() {
   const tags = tagsData?.tags ?? [];
   const incompleteTheories = incompleteData?.theories ?? [];
   const approvedTheories = approvedData?.theories ?? [];
-  const [approvedSearch, setApprovedSearch] = useState('');
-
-  const filteredApprovedTheories = useMemo(() => {
-    const term = approvedSearch.trim().toLowerCase();
-    if (!term) return approvedTheories;
-    return approvedTheories.filter((theory: any) => {
-      const haystack = [
-        theory.title || '',
-        theory.content || '',
-        theory.createdBy?.name || '',
-        theory.createdBy?.username || '',
-        theory.createdBy?.email || '',
-        ...(theory.tags?.map((tag: any) => tag.name) ?? []),
-      ]
-        .join(' ')
-        .toLowerCase();
-      return haystack.includes(term);
-    });
-  }, [approvedSearch, approvedTheories]);
+  const approvedTotal = approvedData?.total ?? 0;
+  const hasMoreApproved = approvedData?.hasMore ?? false;
+  const approvedRangeStart = approvedTheories.length > 0 ? (approvedPage - 1) * approvedPageSize + 1 : 0;
+  const approvedRangeEnd = approvedTheories.length > 0 ? approvedRangeStart + approvedTheories.length - 1 : 0;
 
   // Commented out for now - folder/page creation disabled
   // const [folderName, setFolderName] = useState('');
@@ -1305,6 +1312,12 @@ function AdminPage() {
     mutationFn: ({ id, reason }: { id: string; reason?: string }) =>
       moderateTheory(id, { status: 'denied', denialReason: reason }),
     onSuccess: () => {
+      setApprovedPage((prev) => {
+        if (approvedData && approvedData.theories.length <= 1 && prev > 1 && !approvedData.hasMore) {
+          return prev - 1;
+        }
+        return prev;
+      });
       refetchApproved();
       qc.invalidateQueries({ queryKey: ['top-theories'] });
     },
@@ -1498,8 +1511,8 @@ function AdminPage() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
           <h3 style={{ margin: 0, color: '#ef4444' }}>Approved Theories</h3>
           <input
-            value={approvedSearch}
-            onChange={(e) => setApprovedSearch(e.target.value)}
+            value={approvedSearchInput}
+            onChange={(e) => setApprovedSearchInput(e.target.value)}
             placeholder="Search title, author, or tag"
             style={{
               flex: 1,
@@ -1515,26 +1528,76 @@ function AdminPage() {
         <p style={{ fontSize: 12, opacity: 0.8, margin: '12px 0 16px 0' }}>
           Edit approved theories, tune their tags, or remove them from the public feed if needed.
         </p>
-        {isFetchingApproved ? (
+        {isFetchingApproved && !approvedData ? (
           <div style={{ opacity: 0.7, textAlign: 'center', padding: 20 }}>Loading approved theories...</div>
-        ) : filteredApprovedTheories.length === 0 ? (
+        ) : approvedTheories.length === 0 ? (
           <div style={{ opacity: 0.7, textAlign: 'center', padding: 20 }}>No approved theories match this search.</div>
         ) : (
-          <div style={{ display: 'grid', gap: 16 }}>
-            {filteredApprovedTheories.map((theory: any) => (
-              <ApprovedTheoryItem
-                key={theory.id}
-                theory={theory}
-                tags={tags}
-                onSaveMeta={(payload) => updateTitleMut.mutate(payload)}
-                onSaveContent={(payload) => updateApprovedContentMut.mutate(payload)}
-                onRemove={(payload) => removeApprovedMut.mutate(payload)}
-                isSavingMeta={updateTitleMut.isPending}
-                isSavingContent={updateApprovedContentMut.isPending}
-                isRemoving={removeApprovedMut.isPending}
-              />
-            ))}
-          </div>
+          <>
+            <div style={{ display: 'grid', gap: 16 }}>
+              {approvedTheories.map((theory: any) => (
+                <ApprovedTheoryItem
+                  key={theory.id}
+                  theory={theory}
+                  tags={tags}
+                  onSaveMeta={(payload) => updateTitleMut.mutate(payload)}
+                  onSaveContent={(payload) => updateApprovedContentMut.mutate(payload)}
+                  onRemove={(payload) => removeApprovedMut.mutate(payload)}
+                  isSavingMeta={updateTitleMut.isPending}
+                  isSavingContent={updateApprovedContentMut.isPending}
+                  isRemoving={removeApprovedMut.isPending}
+                />
+              ))}
+            </div>
+            <div
+              style={{
+                marginTop: 16,
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: 12,
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <span style={{ fontSize: 12, opacity: 0.8 }}>
+                Showing {approvedRangeStart}-{approvedRangeEnd} of {approvedTotal}
+              </span>
+              <div style={{ display: 'flex', gap: 8 }}>
+                <button
+                  type="button"
+                  onClick={() => setApprovedPage((prev) => Math.max(1, prev - 1))}
+                  disabled={approvedPage === 1 || isFetchingApproved}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 4,
+                    border: '1px solid #ef4444',
+                    background: approvedPage === 1 ? 'rgba(239,68,68,0.2)' : '#111827',
+                    color: '#fff',
+                    cursor: approvedPage === 1 || isFetchingApproved ? 'not-allowed' : 'pointer',
+                    fontSize: 12,
+                  }}
+                >
+                  Previous
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setApprovedPage((prev) => prev + 1)}
+                  disabled={!hasMoreApproved || isFetchingApproved}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 4,
+                    border: '1px solid #ef4444',
+                    background: !hasMoreApproved ? 'rgba(239,68,68,0.2)' : '#111827',
+                    color: '#fff',
+                    cursor: !hasMoreApproved || isFetchingApproved ? 'not-allowed' : 'pointer',
+                    fontSize: 12,
+                  }}
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          </>
         )}
       </div>
 
@@ -1627,7 +1690,9 @@ function AdminPage() {
             <p className="contributions-count">
               <AnimatedCounter value={totalContributions} /> verified contributions
             </p>
-            <p className="built-by">Built by Lore.</p>
+            <p className="built-by">
+              Built by <a href="https://loreobsessed.com" target="_blank" rel="noreferrer">Lore</a>.
+            </p>
           </div>
         </footer>
       </div>

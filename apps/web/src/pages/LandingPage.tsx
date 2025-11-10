@@ -6,9 +6,11 @@ import { createTheory } from '../services/api';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useContributionStats } from '../hooks/useContributionStats';
 import DirectoryLinks from '../components/DirectoryLinks';
+import { useAuthModal } from '../components/AuthModal';
 
 function AuthButton() {
-  const { isAuthenticated, isLoading, login, logout, user, roleIndicator } = useAuth();
+  const { isAuthenticated, isLoading, logout, user, roleIndicator } = useAuth();
+  const { open: openAuthModal } = useAuthModal();
 
   if (isLoading) {
     return <span className="auth-link">Loading...</span>;
@@ -44,7 +46,7 @@ function AuthButton() {
 
   return (
     <button
-      onClick={login}
+      onClick={() => openAuthModal('Sign in to join the experiment.')}
       className="auth-link"
       style={{
         background: 'none',
@@ -65,6 +67,7 @@ function LandingPage() {
   const [isHelpOpen, setIsHelpOpen] = useState(false);
   const { data: contributionStats } = useContributionStats();
   const totalContributions = contributionStats?.totalContributions ?? 0;
+  const { open: openAuthModal } = useAuthModal();
 
   const submitTheory = useMutation({
     mutationFn: (content: string) => createTheory(content),
@@ -85,7 +88,7 @@ function LandingPage() {
       return;
     }
     if (!isAuthenticated) {
-      alert('Please log in to submit a theory');
+      openAuthModal('Sign in to submit a Stranger Things 5 theory.');
       return;
     }
     if (needsUsername) {
@@ -119,7 +122,15 @@ function LandingPage() {
             />
             <p className="description">
               The first-ever 100% fan-sourced library for theories and fanon related to Season 5 of Netflix's{' '}
-              <span className="highlight">'Stranger Things'</span>.
+              <a
+                href="https://www.netflix.com/title/80057281"
+                className="highlight"
+                target="_blank"
+                rel="noreferrer"
+              >
+                'Stranger Things'
+              </a>
+              .
             </p>
           </div>
           <div className="header-right">
@@ -149,7 +160,7 @@ function LandingPage() {
             <button 
               className="submit-button"
               onClick={handleSubmit}
-              disabled={submitTheory.isPending || !isAuthenticated || needsUsername}
+              disabled={submitTheory.isPending || needsUsername}
             >
               <img 
                 src="/assets/submit.png" 
@@ -217,7 +228,9 @@ function LandingPage() {
             <p className="contributions-count">
               <AnimatedCounter value={totalContributions} /> verified contributions
             </p>
-            <p className="built-by">Built by Lore.</p>
+            <p className="built-by">
+              Built by <a href="https://loreobsessed.com" target="_blank" rel="noreferrer">Lore</a>.
+            </p>
           </div>
         </footer>
       </main>

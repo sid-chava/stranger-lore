@@ -11,6 +11,7 @@ import CanonPageView from './pages/CanonPageView';
 import TopTheoriesPage from './pages/TopTheoriesPage';
 import ContributorLeaderboardPage from './pages/ContributorLeaderboardPage';
 import UsernamePrompt from './components/UsernamePrompt';
+import { AuthModalProvider } from './components/AuthModal';
 
 function HandlerRoutes() {
   const location = useLocation();
@@ -65,8 +66,10 @@ function App() {
     <Suspense fallback="Loading...">
       <StackProvider app={stackClientApp}>
         <StackTheme>
-          <UsernamePrompt />
-          <AppRoutes />
+          <AuthModalProvider>
+            <UsernamePrompt />
+            <AppRoutes />
+          </AuthModalProvider>
         </StackTheme>
       </StackProvider>
     </Suspense>

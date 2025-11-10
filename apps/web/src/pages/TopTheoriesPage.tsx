@@ -8,10 +8,12 @@ import remarkGfm from 'remark-gfm';
 import AnimatedCounter from '../components/AnimatedCounter';
 import { useContributionStats } from '../hooks/useContributionStats';
 import DirectoryLinks from '../components/DirectoryLinks';
+import { useAuthModal } from '../components/AuthModal';
 
 
 function TheoryItem({ theory }: { theory: any }) {
   const { isAuthenticated, needsUsername } = useAuth();
+  const { open: openAuthModal } = useAuthModal();
   const qc = useQueryClient();
 
   const voteMut = useMutation({
@@ -80,7 +82,7 @@ function TheoryItem({ theory }: { theory: any }) {
 
   const handleVote = (value: 1 | -1) => {
     if (!isAuthenticated) {
-      alert('Please log in to vote');
+      openAuthModal('Sign in to vote on theories.');
       return;
     }
     if (needsUsername) {
@@ -99,16 +101,16 @@ function TheoryItem({ theory }: { theory: any }) {
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minWidth: 40 }}>
         <button
           onClick={() => handleVote(1)}
-          disabled={voteMut.isPending || !isAuthenticated || needsUsername}
+          disabled={voteMut.isPending || needsUsername}
           style={{
             background: userVote === 1 ? '#059669' : 'transparent',
             border: '1px solid #ef4444',
             borderRadius: 4,
             color: '#fff',
-            cursor: isAuthenticated && !needsUsername ? 'pointer' : 'not-allowed',
+            cursor: voteMut.isPending || needsUsername ? 'not-allowed' : 'pointer',
             padding: '4px 8px',
             fontSize: '14px',
-            opacity: !isAuthenticated || needsUsername ? 0.5 : 1,
+            opacity: needsUsername ? 0.5 : 1,
           }}
           title={
             !isAuthenticated
@@ -125,16 +127,16 @@ function TheoryItem({ theory }: { theory: any }) {
         </span>
         <button
           onClick={() => handleVote(-1)}
-          disabled={voteMut.isPending || !isAuthenticated || needsUsername}
+          disabled={voteMut.isPending || needsUsername}
           style={{
             background: userVote === -1 ? '#dc2626' : 'transparent',
             border: '1px solid #ef4444',
             borderRadius: 4,
             color: '#fff',
-            cursor: isAuthenticated && !needsUsername ? 'pointer' : 'not-allowed',
+            cursor: voteMut.isPending || needsUsername ? 'not-allowed' : 'pointer',
             padding: '4px 8px',
             fontSize: '14px',
-            opacity: !isAuthenticated || needsUsername ? 0.5 : 1,
+            opacity: needsUsername ? 0.5 : 1,
           }}
           title={
             !isAuthenticated
@@ -196,7 +198,7 @@ function TopTheoriesPage() {
   const { data: contributionStats } = useContributionStats();
   const totalContributions = contributionStats?.totalContributions ?? 0;
   const theories = data?.theories ?? [];
-  const [selectedTag, setSelectedTag] = useState('all');
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const tagOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -213,16 +215,19 @@ function TopTheoriesPage() {
   }, [theories]);
 
   const filteredTheories = useMemo(() => {
-    if (selectedTag === 'all') return theories;
-    return theories.filter((theory: any) => theory.tags?.some((tag: any) => tag.id === selectedTag));
-  }, [selectedTag, theories]);
+    if (selectedTags.length === 0) return theories;
+    return theories.filter((theory: any) =>
+      selectedTags.every((tagId) => theory.tags?.some((tag: any) => tag.id === tagId))
+    );
+  }, [selectedTags, theories]);
 
   useEffect(() => {
-    if (selectedTag === 'all') return;
-    if (!tagOptions.some((tag) => tag.id === selectedTag)) {
-      setSelectedTag('all');
-    }
-  }, [selectedTag, tagOptions]);
+    setSelectedTags((prev) => prev.filter((id) => tagOptions.some((tag) => tag.id === id)));
+  }, [tagOptions]);
+
+  const toggleTag = (tagId: string) => {
+    setSelectedTags((prev) => (prev.includes(tagId) ? prev.filter((id) => id !== tagId) : [...prev, tagId]));
+  };
 
   return (
     <div className="landing-page">
@@ -252,12 +257,12 @@ function TopTheoriesPage() {
               <p style={{ margin: '0 0 8px 0', color: '#f87171', fontSize: 14 }}>Filter by tag</p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 <button
-                  onClick={() => setSelectedTag('all')}
+                  onClick={() => setSelectedTags([])}
                   style={{
                     padding: '4px 10px',
                     borderRadius: 4,
                     border: '1px solid #ef4444',
-                    background: selectedTag === 'all' ? '#2563eb' : 'transparent',
+                    background: selectedTags.length === 0 ? '#2563eb' : 'transparent',
                     color: '#fff',
                     fontSize: 12,
                     cursor: 'pointer',
@@ -268,28 +273,31 @@ function TopTheoriesPage() {
                 {tagOptions.length === 0 && (
                   <span style={{ fontSize: 12, color: '#9ca3af' }}>Tags will appear as moderators start applying them.</span>
                 )}
-                {tagOptions.map((tag) => (
-                  <button
-                    key={tag.id}
-                    onClick={() => setSelectedTag(tag.id)}
-                    style={{
-                      padding: '4px 10px',
-                      borderRadius: 4,
-                      border: '1px solid #ef4444',
-                      background: selectedTag === tag.id ? '#2563eb' : 'transparent',
-                      color: '#fff',
-                      fontSize: 12,
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {tag.name}
-                  </button>
-                ))}
+                {tagOptions.map((tag) => {
+                  const isActive = selectedTags.includes(tag.id);
+                  return (
+                    <button
+                      key={tag.id}
+                      onClick={() => toggleTag(tag.id)}
+                      style={{
+                        padding: '4px 10px',
+                        borderRadius: 4,
+                        border: '1px solid #ef4444',
+                        background: isActive ? '#2563eb' : 'transparent',
+                        color: '#fff',
+                        fontSize: 12,
+                        cursor: 'pointer',
+                      }}
+                    >
+                      {tag.name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             {filteredTheories.length === 0 ? (
               <div style={{ color: '#fff', opacity: 0.7, textAlign: 'center', padding: 40 }}>
-                {selectedTag === 'all'
+                {selectedTags.length === 0
                   ? 'No approved theories yet. Be the first to submit one!'
                   : 'No theories have been tagged this way yet.'}
               </div>
@@ -320,7 +328,9 @@ function TopTheoriesPage() {
             <p className="contributions-count">
               <AnimatedCounter value={totalContributions} /> verified contributions
             </p>
-            <p className="built-by">Built by Lore.</p>
+            <p className="built-by">
+              Built by <a href="https://loreobsessed.com" target="_blank" rel="noreferrer">Lore</a>.
+            </p>
           </div>
         </footer>
       </div>

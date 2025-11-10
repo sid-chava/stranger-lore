@@ -79,6 +79,12 @@ const ApprovedTheoriesQuerySchema = z.object({
     .min(1)
     .max(200)
     .optional(),
+  page: z
+    .preprocess((val) => (val !== undefined ? Number(val) : undefined), z.number().int().min(1))
+    .optional(),
+  pageSize: z
+    .preprocess((val) => (val !== undefined ? Number(val) : undefined), z.number().int().min(1).max(100))
+    .optional(),
 });
 
 export async function theoryRoutes(fastify: FastifyInstance) {
@@ -135,6 +141,10 @@ export async function theoryRoutes(fastify: FastifyInstance) {
       try {
         const parsedQuery = ApprovedTheoriesQuerySchema.safeParse(request.query ?? {});
         const search = parsedQuery.success ? parsedQuery.data.search : undefined;
+        const page = parsedQuery.success && parsedQuery.data.page ? parsedQuery.data.page : 1;
+        const rawPageSize = parsedQuery.success && parsedQuery.data.pageSize ? parsedQuery.data.pageSize : 25;
+        const pageSize = Math.min(Math.max(rawPageSize, 1), 100);
+        const skip = (page - 1) * pageSize;
 
         const where: any = {
           status: 'approved',
@@ -157,19 +167,24 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           ];
         }
 
-        const theories = await prisma.theory.findMany({
-          where,
-          include: {
-            createdBy: {
-              select: { id: true, email: true, name: true, username: true },
+        const [total, theories] = await Promise.all([
+          prisma.theory.count({ where }),
+          prisma.theory.findMany({
+            where,
+            include: {
+              createdBy: {
+                select: { id: true, email: true, name: true, username: true },
+              },
+              tags: {
+                include: { tag: true },
+              },
+              votes: true,
             },
-            tags: {
-              include: { tag: true },
-            },
-            votes: true,
-          },
-          orderBy: { moderatedAt: 'desc' },
-        });
+            orderBy: { moderatedAt: 'desc' },
+            take: pageSize,
+            skip,
+          }),
+        ]);
 
         const formatted = theories.map((theory: any) => {
           const upvotes = theory.votes.filter((v: any) => v.value === 1).length;
@@ -188,7 +203,15 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           };
         });
 
-        return { theories: formatted };
+        const hasMore = skip + theories.length < total;
+
+        return {
+          theories: formatted,
+          total,
+          page,
+          pageSize,
+          hasMore,
+        };
       } catch (error: any) {
         fastify.log.error(error);
         return reply.code(500).send({ error: { message: error?.message || 'Failed to fetch approved theories' } });

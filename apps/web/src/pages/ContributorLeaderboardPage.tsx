@@ -142,7 +142,9 @@ function ContributorLeaderboardPage() {
             <p className="contributions-count">
               <AnimatedCounter value={totalContributions} /> verified contributions
             </p>
-            <p className="built-by">Built by Lore.</p>
+            <p className="built-by">
+              Built by <a href="https://loreobsessed.com" target="_blank" rel="noreferrer">Lore</a>.
+            </p>
           </div>
         </footer>
       </div>

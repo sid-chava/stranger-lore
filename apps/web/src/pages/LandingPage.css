@@ -75,6 +75,7 @@
 
 .description .highlight {
   color: #1300e6;
+  text-decoration: underline;
 }
 
 .header-right {
@@ -348,6 +349,15 @@
   image-rendering: crisp-edges;
 }
 
+.built-by a {
+  color: inherit;
+  text-decoration: underline;
+}
+
+.built-by a:hover {
+  opacity: 0.85;
+}
+
 .admin-view .directory-section,
 .admin-view .footer-section {
   position: static;
@@ -406,6 +416,27 @@
 }
 
 @media (max-width: 768px) {
+  .input-section {
+    margin-top: 60px;
+  }
+  .directory-section {
+    width: 100%;
+    text-align: left;
+    margin: 60px 0 0 0;
+  }
+
+  .directory-list {
+    width: 100%;
+  }
+
+  .directory-item {
+    text-align: left;
+  }
+
+  .main-content {
+    gap: 32px;
+  }
+
   .footer-section,
   .footer-left {
     align-items: center;
@@ -426,11 +457,15 @@
 
 @media (max-width: 640px) {
   .brand-logo {
-    width: 200px;
+    width: 240px;
     max-width: 100%;
   }
 
   .input-section {
+    margin-top: 60px;
+  }
+
+  .directory-section {
     margin-top: 60px;
   }
 
