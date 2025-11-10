@@ -86,6 +86,10 @@ img {
   color: #fff;
 }
 
+.auth-modal-panel :where(h1, h2, h3, h4, h5, h6, p, span, label, .stack-text, .stack-heading, .stack-description, .stack-form-label) {
+  color: #fff !important;
+}
+
 .auth-modal-panel .stack-sign-in button,
 .auth-modal-panel .stack-sign-in .stack-button,
 .auth-modal-panel .stack-sign-in [role='button'] {
