@@ -54,3 +54,14 @@ img {
 .auth-modal-panel a {
   color: #f87171;
 }
+
+.auth-modal-panel h1,
+.auth-modal-panel h2,
+.auth-modal-panel h3,
+.auth-modal-panel h4,
+.auth-modal-panel h5,
+.auth-modal-panel h6,
+.auth-modal-panel .stack-heading,
+.auth-modal-panel .stack-description {
+  color: #fff !important;
+}
