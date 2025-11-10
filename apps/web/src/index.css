@@ -44,6 +44,10 @@ img {
   border-radius: 12px;
   position: relative;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  text-align: center;
 }
 
 .auth-modal-close {
@@ -68,6 +72,7 @@ img {
   gap: 16px;
   color: #fff;
   font-family: 'Roboto Mono', monospace;
+  align-items: center;
 }
 
 .auth-modal-message {
@@ -77,9 +82,14 @@ img {
   text-align: center;
 }
 
-.auth-modal-panel,
-.auth-modal-panel :is(h1, h2, h3, h4, h5, h6, p, span, label) {
-  color: #fff !important;
+.auth-modal-panel {
+  color: #fff;
+}
+
+.auth-modal-panel .stack-sign-in button,
+.auth-modal-panel .stack-sign-in .stack-button,
+.auth-modal-panel .stack-sign-in [role='button'] {
+  color: #000 !important;
 }
 
 .auth-modal-panel a {
