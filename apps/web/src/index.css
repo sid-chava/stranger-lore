@@ -62,6 +62,9 @@ img {
 .auth-modal-panel h5,
 .auth-modal-panel h6,
 .auth-modal-panel .stack-heading,
-.auth-modal-panel .stack-description {
+.auth-modal-panel .stack-description,
+.auth-modal-panel .stack-text,
+.auth-modal-panel .stack-typography,
+.auth-modal-panel .stack-paragraph {
   color: #fff !important;
 }
