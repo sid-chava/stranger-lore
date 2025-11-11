@@ -1483,6 +1483,30 @@ function AdminPage() {
         </div>
       </div> */}
 
+      {/* Theory Moderation */}
+      <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
+        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Moderate Theories</h3>
+        <div style={{ maxHeight: '500px', overflowY: 'auto', display: 'grid', gap: 12 }}>
+          {theories.map((theory: any) => (
+            <TheoryModerationItem
+              key={theory.id}
+              theory={theory}
+              tags={tags}
+              onModerate={moderateTheoryMut.mutate}
+              onCreateTag={createTagMut.mutate}
+              onSplit={(payload) => splitTheoryMut.mutate(payload)}
+              onUpdateContent={({ id, content }) => updateContentMut.mutate({ id, content })}
+              isModerating={moderateTheoryMut.isPending}
+              isCreatingTag={createTagMut.isPending}
+              isSplitting={splitTheoryMut.isPending}
+            />
+          ))}
+          {theories.length === 0 && (
+            <div style={{ opacity: 0.7, padding: 20, textAlign: 'center' }}>No unmoderated theories</div>
+          )}
+        </div>
+      </div>
+
       {/* Needs Title section */}
       <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
         <h3 style={{ marginTop: 0, color: '#ef4444' }}>Approved Theories Missing Titles</h3>
@@ -1643,30 +1667,6 @@ function AdminPage() {
             ))}
           </div>
         )}
-      </div>
-
-      {/* Theory Moderation */}
-      <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
-        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Moderate Theories</h3>
-        <div style={{ maxHeight: '500px', overflowY: 'auto', display: 'grid', gap: 12 }}>
-          {theories.map((theory: any) => (
-            <TheoryModerationItem
-              key={theory.id}
-              theory={theory}
-              tags={tags}
-              onModerate={moderateTheoryMut.mutate}
-              onCreateTag={createTagMut.mutate}
-              onSplit={(payload) => splitTheoryMut.mutate(payload)}
-              onUpdateContent={({ id, content }) => updateContentMut.mutate({ id, content })}
-              isModerating={moderateTheoryMut.isPending}
-              isCreatingTag={createTagMut.isPending}
-              isSplitting={splitTheoryMut.isPending}
-            />
-          ))}
-          {theories.length === 0 && (
-            <div style={{ opacity: 0.7, padding: 20, textAlign: 'center' }}>No unmoderated theories</div>
-          )}
-        </div>
       </div>
 
         </div>
