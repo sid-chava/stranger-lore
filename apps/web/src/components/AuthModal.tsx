@@ -43,9 +43,11 @@ export function AuthModalProvider({ children }: { children: React.ReactNode }) {
               ✕
             </button>
             <div className="auth-modal-body">
-              <p className="auth-modal-message">
-                {message || 'Sign in to keep contributing theories and votes.'}
-              </p>
+              {message && (
+                <p className="auth-modal-message">
+                  {message}
+                </p>
+              )}
               <SignIn fullPage={false} automaticRedirect />
             </div>
           </div>
