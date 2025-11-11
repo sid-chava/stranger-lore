@@ -1,7 +1,6 @@
 import { FastifyInstance } from 'fastify';
 import { PrismaClient } from '@prisma/client';
 import { authenticateUser } from '../middleware/auth.js';
-import jwt from 'jsonwebtoken';
 import { z } from 'zod';
 
 const prisma = new PrismaClient();
@@ -10,16 +9,6 @@ const prisma = new PrismaClient();
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || 'siddarth.chava@gmail.com')
   .split(',')
   .map((email) => email.trim().toLowerCase());
-
-// Helper to get email from JWT token
-function getEmailFromToken(token: string): string | null {
-  try {
-    const decoded = jwt.decode(token) as jwt.JwtPayload | null;
-    return decoded?.email?.toLowerCase() || null;
-  } catch {
-    return null;
-  }
-}
 
 // Helper to assign admin role if email matches
 async function assignAdminRoleIfNeeded(
@@ -66,10 +55,11 @@ export async function authRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        // Get email from token if available
-        const authHeader = request.headers.authorization;
-        const token = authHeader?.substring(7); // Remove 'Bearer '
-        const emailFromToken = token ? getEmailFromToken(token) : null;
+        // Get email from verified token if available
+        const emailFromToken =
+          typeof request.user.tokenPayload?.email === 'string'
+            ? request.user.tokenPayload.email.toLowerCase()
+            : null;
 
         // Find or create user in our database
         let user = await prisma.user.findUnique({

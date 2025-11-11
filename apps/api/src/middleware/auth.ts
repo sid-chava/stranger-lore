@@ -1,9 +1,11 @@
 import { FastifyRequest, FastifyReply } from 'fastify';
-import jwt from 'jsonwebtoken';
+import type { JWTPayload } from 'jose';
+import { verifyStackAuthToken } from '../lib/stackAuth.js';
 
 export interface AuthenticatedUser {
   stackAuthId: string;
   userId?: string;
+  tokenPayload?: JWTPayload;
 }
 
 declare module 'fastify' {
@@ -12,58 +14,38 @@ declare module 'fastify' {
   }
 }
 
+function extractToken(request: FastifyRequest): string | undefined {
+  const stackAuthHeader = request.headers['x-stack-auth'];
+  if (typeof stackAuthHeader === 'string' && stackAuthHeader.trim()) {
+    return stackAuthHeader.trim();
+  }
+  const authHeader = request.headers.authorization;
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    return authHeader.substring(7);
+  }
+  return undefined;
+}
+
+async function setRequestUserFromToken(request: FastifyRequest, token: string): Promise<void> {
+  const verified = await verifyStackAuthToken(token);
+  request.user = {
+    stackAuthId: verified.stackAuthId,
+    tokenPayload: verified.payload,
+  };
+}
+
 // JWT verification middleware
 export async function authenticateUser(
   request: FastifyRequest,
   reply: FastifyReply
 ): Promise<void> {
   try {
-    // Try Stack Auth's x-stack-auth header first, then Authorization Bearer
-    let token: string | undefined;
-    
-    const stackAuthHeader = request.headers['x-stack-auth'];
-    if (stackAuthHeader && typeof stackAuthHeader === 'string') {
-      token = stackAuthHeader;
-    } else {
-      const authHeader = request.headers.authorization;
-      if (authHeader && authHeader.startsWith('Bearer ')) {
-        token = authHeader.substring(7); // Remove 'Bearer ' prefix
-      }
-    }
-    
+    const token = extractToken(request);
     if (!token) {
       reply.code(401).send({ error: 'Missing or invalid authorization header' });
       return;
     }
-    
-    // Get Stack Auth project ID from environment
-    const stackProjectId = process.env.STACK_PROJECT_ID;
-    if (!stackProjectId) {
-      reply.code(500).send({ error: 'Stack Auth not configured' });
-      return;
-    }
-
-    // Verify JWT token from Stack Auth
-    // Note: Stack Auth JWTs are signed with their public keys
-    // In production, you should verify against Stack Auth's public keys
-    // For now, we'll decode and validate basic structure
-    try {
-      // Decode without verification first to check structure
-      const decoded = jwt.decode(token) as jwt.JwtPayload | null;
-      
-      if (!decoded || !decoded.sub) {
-        reply.code(401).send({ error: 'Invalid token' });
-        return;
-      }
-
-      // Store user info on request object
-      request.user = {
-        stackAuthId: decoded.sub as string,
-      };
-    } catch (error) {
-      reply.code(401).send({ error: 'Invalid token' });
-      return;
-    }
+    await setRequestUserFromToken(request, token);
   } catch (error) {
     reply.code(401).send({ error: 'Authentication failed' });
   }
@@ -72,28 +54,15 @@ export async function authenticateUser(
 // Optional authentication - doesn't fail if no token
 export async function optionalAuth(
   request: FastifyRequest,
-  reply: FastifyReply
+  _reply: FastifyReply,
 ): Promise<void> {
   try {
-    const authHeader = request.headers.authorization;
-    
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // No token provided, but that's OK
+    const token = extractToken(request);
+    if (!token) {
       return;
     }
-
-    const token = authHeader.substring(7);
-    
-    const decoded = jwt.decode(token) as jwt.JwtPayload | null;
-    
-    if (decoded?.sub) {
-      request.user = {
-        stackAuthId: decoded.sub as string,
-      };
-    }
-  } catch (error) {
-    // Silently fail for optional auth
-    return;
+    await setRequestUserFromToken(request, token);
+  } catch {
+    // Silently swallow optional auth errors
   }
 }
-
