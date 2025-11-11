@@ -1507,29 +1507,6 @@ function AdminPage() {
         </div>
       </div>
 
-      {/* Needs Title section */}
-      <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
-        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Approved Theories Missing Titles</h3>
-        <p style={{ fontSize: 12, opacity: 0.8, marginBottom: 16 }}>
-          These theories are hidden from the public list until a title is added.
-        </p>
-        <div style={{ display: 'grid', gap: 12 }}>
-          {incompleteTheories.map((theory: any) => (
-            <IncompleteTheoryItem
-              key={theory.id}
-              theory={theory}
-              onSave={({ id, title }) => updateTitleMut.mutate({ id, title })}
-              isSaving={updateTitleMut.isPending}
-            />
-          ))}
-          {incompleteTheories.length === 0 && (
-            <div style={{ opacity: 0.7, textAlign: 'center', padding: 20 }}>
-              All approved theories have titles. Nice work!
-            </div>
-          )}
-      </div>
-    </div>
-
       {/* Approved Theories */}
       <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
@@ -1667,6 +1644,29 @@ function AdminPage() {
             ))}
           </div>
         )}
+      </div>
+
+      {/* Needs Title section */}
+      <div style={{ marginTop: 30, background: 'rgba(0,0,0,0.35)', padding: 16, border: '1px solid #ef4444', borderRadius: 6 }}>
+        <h3 style={{ marginTop: 0, color: '#ef4444' }}>Approved Theories Missing Titles</h3>
+        <p style={{ fontSize: 12, opacity: 0.8, marginBottom: 16 }}>
+          These theories are hidden from the public list until a title is added.
+        </p>
+        <div style={{ display: 'grid', gap: 12 }}>
+          {incompleteTheories.map((theory: any) => (
+            <IncompleteTheoryItem
+              key={theory.id}
+              theory={theory}
+              onSave={({ id, title }) => updateTitleMut.mutate({ id, title })}
+              isSaving={updateTitleMut.isPending}
+            />
+          ))}
+          {incompleteTheories.length === 0 && (
+            <div style={{ opacity: 0.7, textAlign: 'center', padding: 20 }}>
+              All approved theories have titles. Nice work!
+            </div>
+          )}
+        </div>
       </div>
 
         </div>
