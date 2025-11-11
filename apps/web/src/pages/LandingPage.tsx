@@ -1,5 +1,5 @@
 import './LandingPage.css';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { useAuth } from '../contexts/AuthContext';
 import { createTheory } from '../services/api';
@@ -61,10 +61,20 @@ function AuthButton() {
   );
 }
 
+const DESKTOP_PLACEHOLDER =
+  "Submit a Stranger Things 5 easter egg, prediction, or theory to contribute to our library...";
+const MOBILE_PLACEHOLDER = 'Contribute a S5 theory to our fanon library...';
+
 function LandingPage() {
   const { isAuthenticated, needsUsername } = useAuth();
   const [theoryContent, setTheoryContent] = useState('');
   const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [placeholder, setPlaceholder] = useState(() => {
+    if (typeof window !== 'undefined' && window.matchMedia) {
+      return window.matchMedia('(max-width: 768px)').matches ? MOBILE_PLACEHOLDER : DESKTOP_PLACEHOLDER;
+    }
+    return DESKTOP_PLACEHOLDER;
+  });
   const { data: contributionStats } = useContributionStats();
   const totalContributions = contributionStats?.totalContributions ?? 0;
   const { open: openAuthModal } = useAuthModal();
@@ -103,6 +113,30 @@ function LandingPage() {
       handleSubmit();
     }
   };
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia('(max-width: 768px)');
+    const updatePlaceholder = (matches: boolean) => {
+      setPlaceholder(matches ? MOBILE_PLACEHOLDER : DESKTOP_PLACEHOLDER);
+    };
+
+    updatePlaceholder(mediaQuery.matches);
+
+    const listener = (event: MediaQueryListEvent) => updatePlaceholder(event.matches);
+
+    if (mediaQuery.addEventListener) {
+      mediaQuery.addEventListener('change', listener);
+      return () => mediaQuery.removeEventListener('change', listener);
+    }
+
+    // Fallback for older browsers
+    mediaQuery.addListener(listener);
+    return () => mediaQuery.removeListener(listener);
+  }, []);
 
   return (
     <>
@@ -148,7 +182,7 @@ function LandingPage() {
             value={theoryContent}
             onChange={(e) => setTheoryContent(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Submit a Stranger Things 5 easter egg, prediction, or theory to contribute to our library..."
+            placeholder={placeholder}
             disabled={submitTheory.isPending}
           />
           {needsUsername && isAuthenticated && (
