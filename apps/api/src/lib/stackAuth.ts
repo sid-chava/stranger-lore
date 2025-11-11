@@ -14,7 +14,7 @@ const jwksUrl = new URL(jwksPath, STACK_API_BASE_URL);
 const JWKS = createRemoteJWKSet(jwksUrl);
 
 const expectedIssuer = process.env.STACK_JWT_ISSUER;
-const expectedAudience = process.env.STACK_JWT_AUDIENCE || STACK_PROJECT_ID;
+const expectedAudience = process.env.STACK_JWT_AUDIENCE;
 
 const verifyOptions: JWTVerifyOptions = {};
 if (expectedIssuer) {
