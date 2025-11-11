@@ -1,4 +1,9 @@
 import { createRemoteJWKSet, JWTPayload, jwtVerify, type JWTVerifyOptions } from 'jose';
+import { webcrypto } from 'node:crypto';
+
+if (!(globalThis as any).crypto) {
+  (globalThis as any).crypto = webcrypto as Crypto;
+}
 
 const STACK_PROJECT_ID = process.env.STACK_PROJECT_ID;
 
