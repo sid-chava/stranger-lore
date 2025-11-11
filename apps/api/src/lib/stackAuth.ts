@@ -30,14 +30,19 @@ export type VerifiedStackAuthToken = {
 };
 
 export async function verifyStackAuthToken(token: string): Promise<VerifiedStackAuthToken> {
-  const { payload } = await jwtVerify(token, JWKS, verifyOptions);
+  try {
+    const { payload } = await jwtVerify(token, JWKS, verifyOptions);
 
-  if (!payload.sub || typeof payload.sub !== 'string') {
-    throw new Error('Invalid Stack Auth token: missing subject');
+    if (!payload.sub || typeof payload.sub !== 'string') {
+      throw new Error('Invalid Stack Auth token: missing subject');
+    }
+
+    return {
+      stackAuthId: payload.sub,
+      payload,
+    };
+  } catch (error: any) {
+    const reason = error?.message || 'Unknown reason';
+    throw new Error(`Stack Auth verification failed: ${reason}`);
   }
-
-  return {
-    stackAuthId: payload.sub,
-    payload,
-  };
 }

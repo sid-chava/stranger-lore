@@ -46,7 +46,8 @@ export async function authenticateUser(
       return;
     }
     await setRequestUserFromToken(request, token);
-  } catch (error) {
+  } catch (error: any) {
+    request.log.error({ err: error }, 'Stack Auth authentication failed');
     reply.code(401).send({ error: 'Authentication failed' });
   }
 }
@@ -62,7 +63,8 @@ export async function optionalAuth(
       return;
     }
     await setRequestUserFromToken(request, token);
-  } catch {
+  } catch (error: any) {
+    request.log.warn({ err: error }, 'Optional auth failed; continuing without user');
     // Silently swallow optional auth errors
   }
 }
