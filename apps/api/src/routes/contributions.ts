@@ -66,13 +66,22 @@ export async function contributionRoutes(fastify: FastifyInstance) {
         const leaderboard: RankedEntry[] = totals
           .map((entry) => {
             const user = userMap.get(entry.userId);
+            let approvals = approvalMap.get(entry.userId) ?? 0;
+            let contributions = entry._count._all;
+            
+            // Hardcoded adjustment: subtract 6 approved posts from evanjsantiago
+            if (user?.username === 'evanjsantiago') {
+              approvals = Math.max(0, approvals - 6);
+              contributions = Math.max(0, contributions - 6);
+            }
+            
             return {
               userId: entry.userId,
               username: user?.username,
               name: user?.name,
               email: user?.email,
-              contributions: entry._count._all,
-              approvals: approvalMap.get(entry.userId) ?? 0,
+              contributions,
+              approvals,
               votes: voteMap.get(entry.userId) ?? 0,
               rank: 0,
             };
@@ -108,13 +117,30 @@ export async function contributionRoutes(fastify: FastifyInstance) {
             if (leaderboardEntry) {
               currentUser = leaderboardEntry;
             } else {
+              // If user not in leaderboard, still apply adjustment if needed
+              let approvals = 0;
+              let contributions = 0;
+              if (userRecord.username === 'evanjsantiago') {
+                // Get actual counts and apply adjustment
+                const userApprovals = await prisma.contribution.count({
+                  where: {
+                    userId: userRecord.id,
+                    type: ContributionType.theory_approved,
+                  },
+                });
+                const userContributions = await prisma.contribution.count({
+                  where: { userId: userRecord.id },
+                });
+                approvals = Math.max(0, userApprovals - 6);
+                contributions = Math.max(0, userContributions - 6);
+              }
               currentUser = {
                 userId: userRecord.id,
                 username: userRecord.username,
                 name: userRecord.name,
                 email: userRecord.email,
-                contributions: 0,
-                approvals: 0,
+                contributions,
+                approvals,
                 votes: 0,
                 rank: null,
               };
