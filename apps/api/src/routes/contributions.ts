@@ -70,7 +70,7 @@ export async function contributionRoutes(fastify: FastifyInstance) {
             let contributions = entry._count._all;
             
             // Hardcoded adjustment: subtract 6 approved posts from evanjsantiago
-            if (user?.username === 'evanjsantiago') {
+            if (user?.username?.toLowerCase() === 'evanjsantiago') {
               approvals = Math.max(0, approvals - 6);
               contributions = Math.max(0, contributions - 6);
             }
@@ -120,7 +120,7 @@ export async function contributionRoutes(fastify: FastifyInstance) {
               // If user not in leaderboard, still apply adjustment if needed
               let approvals = 0;
               let contributions = 0;
-              if (userRecord.username === 'evanjsantiago') {
+              if (userRecord.username?.toLowerCase() === 'evanjsantiago') {
                 // Get actual counts and apply adjustment
                 const userApprovals = await prisma.contribution.count({
                   where: {
