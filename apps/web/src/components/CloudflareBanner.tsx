@@ -11,6 +11,8 @@ export function CloudflareBanner() {
     if (dismissed === 'true') {
       setIsDismissed(true);
     }
+    // Debug: log banner state
+    console.log('CloudflareBanner: dismissed =', dismissed, 'isDismissed =', dismissed === 'true');
   }, []);
 
   const handleDismiss = () => {
@@ -34,7 +36,7 @@ export function CloudflareBanner() {
         borderBottom: '2px solid #dc2626',
         color: '#fff',
         padding: '12px 40px',
-        zIndex: 1000,
+        zIndex: 9999,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
