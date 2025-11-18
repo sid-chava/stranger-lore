@@ -12,7 +12,6 @@ import TopTheoriesPage from './pages/TopTheoriesPage';
 import ContributorLeaderboardPage from './pages/ContributorLeaderboardPage';
 import UsernamePrompt from './components/UsernamePrompt';
 import { AuthModalProvider } from './components/AuthModal';
-import { CloudflareBanner } from './components/CloudflareBanner';
 
 function HandlerRoutes() {
   const location = useLocation();
@@ -68,7 +67,6 @@ function App() {
       <StackProvider app={stackClientApp}>
         <StackTheme>
           <AuthModalProvider>
-            <CloudflareBanner />
             <UsernamePrompt />
             <AppRoutes />
           </AuthModalProvider>
