@@ -316,13 +316,37 @@ function TopTheoriesPage() {
           <div className="footer-left">
             <div className="social-links">
               <a href="https://x.com/loreobsessed" className="social-link">
-                <img src="/assets/social-x.png" alt="X/Twitter" className="social-icon" />
+                <img
+                  src="/assets/social-x.png"
+                  alt="X/Twitter"
+                  className="social-icon"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
               </a>
               <a href="https://instagram.com/loreobsessed" className="social-link">
-                <img src="/assets/social-instagram.png" alt="Instagram" className="social-icon" />
+                <img
+                  src="/assets/social-instagram.png"
+                  alt="Instagram"
+                  className="social-icon"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
               </a>
               <a href="https://tiktok.com/@lore" className="social-link">
-                <img src="/assets/social-tiktok.png" alt="TikTok" className="social-icon" />
+                <img
+                  src="/assets/social-tiktok.png"
+                  alt="TikTok"
+                  className="social-icon"
+                  loading="lazy"
+                  onError={(e) => {
+                    e.currentTarget.style.display = 'none';
+                  }}
+                />
               </a>
             </div>
             <p className="contributions-count">
