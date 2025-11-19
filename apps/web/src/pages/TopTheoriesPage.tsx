@@ -190,6 +190,8 @@ function TheoryItem({ theory }: { theory: any }) {
   );
 }
 
+type SortOption = 'top' | 'new';
+
 function TopTheoriesPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['top-theories'],
@@ -199,6 +201,8 @@ function TopTheoriesPage() {
   const totalContributions = contributionStats?.totalContributions ?? 0;
   const theories = data?.theories ?? [];
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [sortBy, setSortBy] = useState<SortOption>('top');
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const tagOptions = useMemo(() => {
     const map = new Map<string, string>();
@@ -214,12 +218,32 @@ function TopTheoriesPage() {
       .sort((a, b) => a.name.localeCompare(b.name));
   }, [theories]);
 
-  const filteredTheories = useMemo(() => {
-    if (selectedTags.length === 0) return theories;
-    return theories.filter((theory: any) =>
-      selectedTags.every((tagId) => theory.tags?.some((tag: any) => tag.id === tagId))
-    );
-  }, [selectedTags, theories]);
+  const filteredAndSortedTheories = useMemo(() => {
+    // First filter by tags
+    let filtered = theories;
+    if (selectedTags.length > 0) {
+      filtered = theories.filter((theory: any) =>
+        selectedTags.every((tagId) => theory.tags?.some((tag: any) => tag.id === tagId))
+      );
+    }
+
+    // Then sort
+    const sorted = [...filtered];
+    if (sortBy === 'new') {
+      sorted.sort((a: any, b: any) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    } else {
+      // 'top' - sort by score, then by date
+      sorted.sort((a: any, b: any) => {
+        const scoreA = a.score || 0;
+        const scoreB = b.score || 0;
+        if (scoreB !== scoreA) return scoreB - scoreA;
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+      });
+    }
+    return sorted;
+  }, [selectedTags, theories, sortBy]);
 
   useEffect(() => {
     setSelectedTags((prev) => prev.filter((id) => tagOptions.some((tag) => tag.id === id)));
@@ -237,7 +261,7 @@ function TopTheoriesPage() {
         <div style={{ marginBottom: 30 }}>
           <h1 style={{ color: '#ef4444', margin: 0, fontSize: '32px' }}>Top Theories</h1>
           <p style={{ color: '#fff', opacity: 0.8, marginTop: 8 }}>
-            The most popular theories from the community, sorted by votes.
+            The most popular theories from the community. Sort by top or new.
           </p>
         </div>
 
@@ -253,56 +277,221 @@ function TopTheoriesPage() {
 
         {!isLoading && !error && (
           <div style={{ background: 'rgba(0,0,0,0.35)', padding: 20, borderRadius: 6, border: '1px solid #ef4444', display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div>
-              <p style={{ margin: '0 0 8px 0', color: '#f87171', fontSize: 14 }}>Filter by tag</p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                <button
-                  onClick={() => setSelectedTags([])}
+            <div style={{ paddingTop: 8, paddingBottom: 8, position: 'relative' }}>
+              <p style={{ margin: '0 0 12px 0', color: '#f87171', fontSize: 14 }}>Filter by tag</p>
+              <div style={{ position: 'relative' }}>
+                <div 
+                  style={{ 
+                    display: 'flex', 
+                    flexWrap: 'wrap', 
+                    gap: 8, 
+                    maxHeight: '110px', 
+                    overflowY: 'scroll', 
+                    paddingRight: 12,
+                    paddingBottom: 8,
+                  }}
+                  className="tag-scroll-container"
+                >
+                  <button
+                    onClick={() => setSelectedTags([])}
+                    style={{
+                      padding: '4px 10px',
+                      borderRadius: 4,
+                      border: '1px solid #ef4444',
+                      background: selectedTags.length === 0 ? '#2563eb' : 'transparent',
+                      color: '#fff',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                    }}
+                  >
+                    All Tags
+                  </button>
+                  {tagOptions.length === 0 && (
+                    <span style={{ fontSize: 12, color: '#9ca3af' }}>Tags will appear as moderators start applying them.</span>
+                  )}
+                  {tagOptions.map((tag) => {
+                    const isActive = selectedTags.includes(tag.id);
+                    return (
+                      <button
+                        key={tag.id}
+                        onClick={() => toggleTag(tag.id)}
+                        style={{
+                          padding: '4px 10px',
+                          borderRadius: 4,
+                          border: '1px solid #ef4444',
+                          background: isActive ? '#2563eb' : 'transparent',
+                          color: '#fff',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                        }}
+                      >
+                        {tag.name}
+                      </button>
+                    );
+                  })}
+                </div>
+                {/* Gradient fade indicator at bottom */}
+                <div
                   style={{
-                    padding: '4px 10px',
-                    borderRadius: 4,
+                    position: 'absolute',
+                    bottom: 0,
+                    left: 0,
+                    right: 12,
+                    height: '20px',
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.35) 0%, transparent 100%)',
+                    pointerEvents: 'none',
+                    borderRadius: '0 0 6px 6px',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Sort dropdown */}
+            <div style={{ paddingTop: 8, paddingBottom: 8 }}>
+              <div style={{ position: 'relative', display: 'inline-block' }}>
+                <button
+                  onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                  onTouchStart={(e) => {
+                    // Prevent double-tap zoom on mobile
+                    e.currentTarget.style.transform = 'scale(0.98)';
+                  }}
+                  onTouchEnd={(e) => {
+                    e.currentTarget.style.transform = 'scale(1)';
+                  }}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 8,
+                    padding: '8px 14px',
+                    minHeight: '36px',
+                    background: 'rgba(0,0,0,0.5)',
                     border: '1px solid #ef4444',
-                    background: selectedTags.length === 0 ? '#2563eb' : 'transparent',
+                    borderRadius: 4,
                     color: '#fff',
                     fontSize: 12,
                     cursor: 'pointer',
+                    fontFamily: "'Roboto Mono', monospace",
+                    touchAction: 'manipulation',
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
-                  All Tags
+                  <span>{sortBy === 'top' ? 'Top' : 'New'}</span>
+                  <span style={{ fontSize: 10, transform: isDropdownOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s' }}>
+                    ▼
+                  </span>
                 </button>
-                {tagOptions.length === 0 && (
-                  <span style={{ fontSize: 12, color: '#9ca3af' }}>Tags will appear as moderators start applying them.</span>
-                )}
-                {tagOptions.map((tag) => {
-                  const isActive = selectedTags.includes(tag.id);
-                  return (
-                    <button
-                      key={tag.id}
-                      onClick={() => toggleTag(tag.id)}
+                {isDropdownOpen && (
+                  <>
+                    <div
                       style={{
-                        padding: '4px 10px',
-                        borderRadius: 4,
+                        position: 'fixed',
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        zIndex: 1,
+                      }}
+                      onClick={() => setIsDropdownOpen(false)}
+                    />
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: '100%',
+                        left: 0,
+                        marginTop: 4,
+                        background: 'rgba(0,0,0,0.9)',
                         border: '1px solid #ef4444',
-                        background: isActive ? '#2563eb' : 'transparent',
-                        color: '#fff',
-                        fontSize: 12,
-                        cursor: 'pointer',
+                        borderRadius: 4,
+                        zIndex: 2,
+                        minWidth: 120,
+                        boxShadow: '0 4px 8px rgba(0,0,0,0.5)',
                       }}
                     >
-                      {tag.name}
-                    </button>
-                  );
-                })}
+                      <button
+                        onClick={() => {
+                          setSortBy('top');
+                          setIsDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '12px 14px',
+                          minHeight: '44px',
+                          background: sortBy === 'top' ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+                          border: 'none',
+                          borderBottom: '1px solid rgba(239, 68, 68, 0.3)',
+                          color: '#fff',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontFamily: "'Roboto Mono', monospace",
+                          touchAction: 'manipulation',
+                          WebkitTapHighlightColor: 'transparent',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (sortBy !== 'top') e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (sortBy !== 'top') e.currentTarget.style.background = 'transparent';
+                        }}
+                        onTouchStart={(e) => {
+                          if (sortBy !== 'top') e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                        }}
+                        onTouchEnd={(e) => {
+                          if (sortBy !== 'top') e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        Top
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSortBy('new');
+                          setIsDropdownOpen(false);
+                        }}
+                        style={{
+                          display: 'block',
+                          width: '100%',
+                          padding: '12px 14px',
+                          minHeight: '44px',
+                          background: sortBy === 'new' ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
+                          border: 'none',
+                          color: '#fff',
+                          fontSize: 12,
+                          cursor: 'pointer',
+                          textAlign: 'left',
+                          fontFamily: "'Roboto Mono', monospace",
+                          touchAction: 'manipulation',
+                          WebkitTapHighlightColor: 'transparent',
+                        }}
+                        onMouseEnter={(e) => {
+                          if (sortBy !== 'new') e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+                        }}
+                        onMouseLeave={(e) => {
+                          if (sortBy !== 'new') e.currentTarget.style.background = 'transparent';
+                        }}
+                        onTouchStart={(e) => {
+                          if (sortBy !== 'new') e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)';
+                        }}
+                        onTouchEnd={(e) => {
+                          if (sortBy !== 'new') e.currentTarget.style.background = 'transparent';
+                        }}
+                      >
+                        New
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
-            {filteredTheories.length === 0 ? (
+
+            {filteredAndSortedTheories.length === 0 ? (
               <div style={{ color: '#fff', opacity: 0.7, textAlign: 'center', padding: 40 }}>
                 {selectedTags.length === 0
                   ? 'No approved theories yet. Be the first to submit one!'
                   : 'No theories have been tagged this way yet.'}
               </div>
             ) : (
-              filteredTheories.map((theory: any) => (
+              filteredAndSortedTheories.map((theory: any) => (
                 <TheoryItem key={theory.id} theory={theory} />
               ))
             )}
