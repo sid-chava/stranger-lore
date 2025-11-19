@@ -11,8 +11,10 @@
   position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  width: 100dvw; /* Dynamic viewport width for mobile browsers */
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height for mobile browsers */
   background-color: #000000;
   background-image: url('/assets/background.png');
   background-size: cover;
@@ -304,7 +306,6 @@
   display: flex;
   gap: 8px;
   align-items: center;
-  font-size: 0; /* Prevents whitespace rendering issues between inline elements */
 }
 
 .social-link {
@@ -313,7 +314,6 @@
   height: auto;
   max-width: 40px;
   max-height: 40px;
-  font-size: 16px; /* Reset font-size for the link itself */
   image-rendering: pixelated;
   image-rendering: -moz-crisp-edges;
   image-rendering: crisp-edges;
