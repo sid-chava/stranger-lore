@@ -173,7 +173,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
             where,
             include: {
               createdBy: {
-                select: { id: true, email: true, name: true, username: true },
+                select: { id: true, name: true, username: true },
               },
               tags: {
                 include: { tag: true },
@@ -229,7 +229,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           where: { status: 'pending' },
           include: {
             createdBy: {
-              select: { id: true, email: true, name: true, username: true },
+              select: { id: true, name: true, username: true },
             },
             tags: {
               include: {
@@ -258,7 +258,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           where: { status: 'approved', title: null },
           include: {
             createdBy: {
-              select: { id: true, email: true, name: true, username: true },
+              select: { id: true, name: true, username: true },
             },
             tags: {
               include: { tag: true },
@@ -590,7 +590,7 @@ export async function theoryRoutes(fastify: FastifyInstance) {
           where: { status: 'approved', title: { not: null } },
           include: {
             createdBy: {
-              select: { id: true, email: true, name: true, username: true },
+              select: { id: true, name: true, username: true },
             },
             tags: {
               include: { tag: true },

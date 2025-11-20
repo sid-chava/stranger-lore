@@ -160,7 +160,7 @@ function TheoryItem({ theory }: { theory: any }) {
         </div>
         <div style={{ marginTop: 8, display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '12px', color: '#ef4444', opacity: 0.8 }}>
-            {theory.createdBy?.username || theory.createdBy?.name || theory.createdBy?.email || 'Unknown'}
+            {theory.createdBy?.username || theory.createdBy?.name || 'Unknown'}
           </span>
           <span style={{ fontSize: '12px', color: '#fff', opacity: 0.6 }}>
             {new Date(theory.createdAt).toLocaleDateString()}
