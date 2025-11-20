@@ -8,7 +8,6 @@ type RankedEntry = {
   userId: string;
   username?: string | null;
   name?: string | null;
-  email?: string | null;
   contributions: number;
   approvals: number;
   votes: number;
@@ -58,7 +57,7 @@ export async function contributionRoutes(fastify: FastifyInstance) {
         const users = userIds.length
           ? await prisma.user.findMany({
               where: { id: { in: userIds } },
-              select: { id: true, username: true, name: true, email: true },
+              select: { id: true, username: true, name: true },
             })
           : [];
         const userMap = new Map(users.map((user) => [user.id, user]));
@@ -79,7 +78,6 @@ export async function contributionRoutes(fastify: FastifyInstance) {
               userId: entry.userId,
               username: user?.username,
               name: user?.name,
-              email: user?.email,
               contributions,
               approvals,
               votes: voteMap.get(entry.userId) ?? 0,
@@ -93,8 +91,8 @@ export async function contributionRoutes(fastify: FastifyInstance) {
             if (b.approvals !== a.approvals) {
               return b.approvals - a.approvals;
             }
-            const nameA = a.username || a.name || a.email || '';
-            const nameB = b.username || b.name || b.email || '';
+            const nameA = a.username || a.name || '';
+            const nameB = b.username || b.name || '';
             return nameA.localeCompare(nameB);
           })
           .map((entry, index) => ({
@@ -108,7 +106,7 @@ export async function contributionRoutes(fastify: FastifyInstance) {
         if (request.user) {
           const userRecord = await prisma.user.findUnique({
             where: { stackAuthId: request.user.stackAuthId },
-            select: { id: true, username: true, name: true, email: true },
+            select: { id: true, username: true, name: true },
           });
           if (userRecord) {
             const leaderboardEntry = leaderboard.find(
@@ -138,7 +136,6 @@ export async function contributionRoutes(fastify: FastifyInstance) {
                 userId: userRecord.id,
                 username: userRecord.username,
                 name: userRecord.name,
-                email: userRecord.email,
                 contributions,
                 approvals,
                 votes: 0,

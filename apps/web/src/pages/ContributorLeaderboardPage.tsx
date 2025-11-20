@@ -15,8 +15,8 @@ function LeaderboardTable({ data, isLoading, error }: LeaderboardSectionProps) {
   const currentUser = data?.currentUser;
   const hasError = Boolean(error);
 
-  const formatName = (entry: { username?: string | null; name?: string | null; email?: string | null }) =>
-    entry.username || entry.name || entry.email || 'Unknown';
+  const formatName = (entry: { username?: string | null; name?: string | null }) =>
+    entry.username || entry.name || 'Unknown';
 
   if (isLoading) {
     return <div style={{ color: '#fff', padding: 20, textAlign: 'center' }}>Loading leaderboard...</div>;

@@ -325,7 +325,6 @@ export type ContributionLeaderboardEntry = {
   userId: string;
   username?: string | null;
   name?: string | null;
-  email?: string | null;
   contributions: number;
   approvals: number;
   votes: number;
