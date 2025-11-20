@@ -1,5 +1,5 @@
 import { useUser, useStackApp } from '@stackframe/react';
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { getCurrentUser } from '../services/api';
 
 // Simplified auth context using Stack React hooks
@@ -8,15 +8,31 @@ export function useAuth() {
   const user = useUser({ or: 'return-null' });
   const [profile, setProfile] = useState<{ roles: string[]; username?: string } | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+  const fetchingRef = useRef(false);
+  const lastUserIdRef = useRef<string | null>(null);
 
   const fetchProfile = useCallback(() => {
-    if (!user || !app) {
-      setProfile(null);
-      setIsLoadingProfile(false);
+    // Prevent duplicate calls
+    if (fetchingRef.current) {
       return;
     }
 
+    if (!user || !app) {
+      setProfile(null);
+      setIsLoadingProfile(false);
+      lastUserIdRef.current = null;
+      return;
+    }
+
+    // Skip if we already fetched for this user
+    if (lastUserIdRef.current === user.id) {
+      return;
+    }
+
+    fetchingRef.current = true;
     setIsLoadingProfile(true);
+    lastUserIdRef.current = user.id;
+
     getCurrentUser(app)
       .then((data: any) => {
         setProfile({
@@ -27,15 +43,17 @@ export function useAuth() {
       .catch((error) => {
         console.error('Failed to fetch user profile:', error);
         setProfile(null);
+        lastUserIdRef.current = null;
       })
       .finally(() => {
         setIsLoadingProfile(false);
+        fetchingRef.current = false;
       });
-  }, [user, app]);
+  }, [user?.id, app?.projectId]);
 
   useEffect(() => {
     fetchProfile();
-  }, [fetchProfile]);
+  }, [user?.id, app?.projectId]);
 
   const login = async () => {
     await app.redirectToSignIn();
