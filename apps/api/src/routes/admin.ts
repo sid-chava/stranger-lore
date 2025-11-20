@@ -62,7 +62,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
           users: users.map((user: any) => ({
             id: user.id,
             stackAuthId: user.stackAuthId,
-            email: user.email,
             name: user.name,
             username: user.username,
             roles: user.userRoles.map((ur: any) => ur.role.name),
@@ -165,7 +164,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
           message: 'Role assigned successfully',
           user: {
             id: userRole.user.id,
-            email: userRole.user.email,
             name: userRole.user.name,
             username: userRole.user.username,
             roles: userRole.user.userRoles.map((ur: any) => ur.role.name),
@@ -231,7 +229,6 @@ export async function adminRoutes(fastify: FastifyInstance) {
           message: 'Role removed successfully',
           user: {
             id: updatedUser!.id,
-            email: updatedUser!.email,
             name: updatedUser!.name,
             username: updatedUser!.username,
             roles: updatedUser!.userRoles.map((ur: any) => ur.role.name),

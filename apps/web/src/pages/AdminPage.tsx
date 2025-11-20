@@ -246,7 +246,7 @@ function TheoryModerationItem({
           </div>
         )}
         <p style={{ margin: '4px 0 0 0', fontSize: '12px', opacity: 0.7, color: '#fff' }}>
-          By: {theory.createdBy?.name || theory.createdBy?.email || 'Unknown'} • {new Date(theory.createdAt).toLocaleDateString()}
+          By: {theory.createdBy?.username || theory.createdBy?.name || 'Unknown'} • {new Date(theory.createdAt).toLocaleDateString()}
         </p>
       </div>
 
@@ -853,7 +853,7 @@ function ApprovedTheoryItem({
         <div>
           <h4 style={{ margin: 0, color: '#f87171' }}>{theory.title}</h4>
           <p style={{ margin: '4px 0', fontSize: 12, color: '#9ca3af' }}>
-            By {theory.createdBy?.username || theory.createdBy?.name || theory.createdBy?.email || 'Unknown'} •{' '}
+            By {theory.createdBy?.username || theory.createdBy?.name || 'Unknown'} •{' '}
             {theory.moderatedAt ? new Date(theory.moderatedAt).toLocaleDateString() : 'Unknown date'}
           </p>
         </div>
