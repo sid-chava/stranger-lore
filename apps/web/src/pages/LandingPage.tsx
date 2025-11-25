@@ -289,6 +289,9 @@ function LandingPage() {
             <p className="built-by">
               Built by <a href="https://loreobsessed.com" target="_blank" rel="noreferrer">Lore</a>.
             </p>
+            <p className="privacy-link">
+              <a href="/privacy">Privacy Policy</a>
+            </p>
           </div>
         </footer>
       </main>

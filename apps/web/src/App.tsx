@@ -10,6 +10,7 @@ import CanonFolderPageList from './pages/CanonFolderPageList';
 import CanonPageView from './pages/CanonPageView';
 import TopTheoriesPage from './pages/TopTheoriesPage';
 import ContributorLeaderboardPage from './pages/ContributorLeaderboardPage';
+import PrivacyPage from './pages/PrivacyPage';
 import UsernamePrompt from './components/UsernamePrompt';
 import { AuthModalProvider } from './components/AuthModal';
 
@@ -44,6 +45,7 @@ function AppRoutes() {
       <Route path="/theories" element={<TopTheoriesPage />} />
       <Route path="/leaderboard" element={<ContributorLeaderboardPage />} />
       <Route path="/admin" element={<AdminPage />} />
+      <Route path="/privacy" element={<PrivacyPage />} />
     </Routes>
   );
 }
